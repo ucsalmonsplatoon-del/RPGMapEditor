@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>RPG Maker MZ パララックスエディタ</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Yu Gothic UI', sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 320px;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            background: #21262d;
+            border-bottom: 1px solid #30363d;
+            font-weight: bold;
+        }
+
+        .panel {
+            border-bottom: 1px solid #30363d;
+        }
+
+        .panel-title {
+            padding: 12px 15px;
+            background: #161b22;
+            font-size: 12px;
+            font-weight: 600;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .panel-body {
+            padding: 15px;
+            background: #0d1117;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 15px;
+            border: 1px solid #30363d;
+            background: #21262d;
+            color: #e6edf3;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn:hover { background: #30363d; border-color: #8b949e; }
+        .btn-primary { background: #238636; border-color: #238636; }
+        .btn-primary:hover { background: #2ea043; }
+        .btn-danger { background: #da3633; border-color: #da3633; }
+        .btn-full { width: 100%; justify-content: center; }
+        .btn-sm { padding: 6px 10px; font-size: 12px; }
+
+        /* Form elements */
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        select:hover { border-color: #8b949e; }
+
+        /* Tool Grid */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .tool-btn {
+            padding: 12px;
+            background: #21262d;
+            border: 2px solid #30363d;
+            color: #e6edf3;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: center;
+            transition: all 0.15s;
+        }
+        .tool-btn:hover { background: #30363d; }
+        .tool-btn.active {
+            border-color: #58a6ff;
+            background: #1f3a5f;
+            box-shadow: 0 0 10px rgba(88, 166, 255, 0.3);
+        }
+        .tool-btn .icon { font-size: 20px; display: block; margin-bottom: 4px; }
+
+        /* Event List */
+        .event-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            padding: 10px 12px;
+            margin: 4px 0;
+            background: #21262d;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        .event-item:hover { background: #30363d; }
+        .event-item.selected {
+            border-color: #58a6ff;
+            background: #1f3a5f;
+        }
+
+        .event-id {
+            background: #238636;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        /* Main Area */
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #toolbar {
+            padding: 12px 15px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toolbar-group label {
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .toolbar-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        #canvasContainer {
+            flex: 1;
+            overflow: auto;
+            background: #010409;
+            position: relative;
+        }
+
+        #mapCanvas {
+            image-rendering: pixelated;
+        }
+
+        /* Cursor styles based on tool */
+        #mapCanvas.tool-select { cursor: default; }
+        #mapCanvas.tool-passable { cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><circle cx="12" cy="12" r="8" fill="%2322c55e" stroke="white" stroke-width="2"/></svg>') 12 12, crosshair; }
+        #mapCanvas.tool-blocked { cursor: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><circle cx="12" cy="12" r="8" fill="%23ef4444" stroke="white" stroke-width="2"/></svg>') 12 12, crosshair; }
+
+        /* Status Bar */
+        #statusBar {
+            padding: 10px 15px;
+            background: #161b22;
+            border-top: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #8b949e;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .coord-display {
+            background: #21262d;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        /* Properties Panel */
+        #properties {
+            width: 280px;
+            background: #161b22;
+            border-left: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .prop-group {
+            padding: 12px 15px;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .prop-group label {
+            display: block;
+            font-size: 11px;
+            color: #8b949e;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .prop-group input, .prop-group textarea {
+            width: 100%;
+            padding: 8px 10px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .prop-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* Start Screen */
+        #startScreen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #startScreen.hidden { display: none; }
+
+        .start-box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 50px;
+            text-align: center;
+            max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .start-box h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #58a6ff, #a371f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .start-box p { color: #8b949e; margin-bottom: 30px; }
+
+        .drop-zone {
+            border: 2px dashed #30363d;
+            border-radius: 12px;
+            padding: 50px 30px;
+            margin: 25px 0;
+            transition: all 0.3s;
+        }
+        .drop-zone:hover { border-color: #58a6ff; }
+        .drop-zone.dragover {
+            border-color: #58a6ff;
+            background: rgba(88, 166, 255, 0.1);
+            transform: scale(1.02);
+        }
+        .drop-zone .icon { font-size: 48px; margin-bottom: 15px; }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+            color: #8b949e;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+        }
+        .legend-passable { background: rgba(34, 197, 94, 0.5); border: 1px solid #22c55e; }
+        .legend-blocked { background: rgba(239, 68, 68, 0.5); border: 1px solid #ef4444; }
+        .legend-overlay { background: rgba(168, 85, 247, 0.5); border: 1px solid #a855f7; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.show { display: flex; }
+        .modal-content {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 25px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: auto;
+        }
+        .modal-content h3 { margin-bottom: 15px; }
+        .modal-content textarea {
+            width: 100%;
+            height: 300px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            padding: 15px;
+            border-radius: 6px;
+            resize: vertical;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        /* Brush Size */
+        .brush-size {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brush-size input[type="range"] {
+            width: 100px;
+        }
+
+        /* Size Info Panel */
+        .size-info .size-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 4px 0;
+            border-bottom: 1px solid #21262d;
+        }
+        .size-info .size-row:last-child { border-bottom: none; }
+        .size-info .size-label { color: #8b949e; }
+        .size-info .size-value { font-family: monospace; color: #e6edf3; }
+        .size-info .size-value.ok { color: #22c55e; }
+        .size-info .size-value.warn { color: #f59e0b; }
+        .size-info .size-value.error { color: #ef4444; }
+
+        .size-warning {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid #ef4444;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #fca5a5;
+        }
+        .size-warning.hidden { display: none; }
+
+        .size-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        /* Resize Modal */
+        .resize-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px;
+            background: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .resize-option:hover { border-color: #8b949e; }
+        .resize-option.selected { border-color: #58a6ff; background: #1f3a5f; }
+        .resize-option input[type="radio"] { margin-top: 2px; }
+        .resize-option-content { flex: 1; }
+        .resize-option-title { font-weight: 600; font-size: 13px; }
+        .resize-option-desc { font-size: 11px; color: #8b949e; margin-top: 4px; }
+        .resize-option-result { font-size: 12px; color: #58a6ff; margin-top: 6px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <!-- Start Screen -->
+    <div id="startScreen">
+        <div class="start-box">
+            <h1>パララックスマップエディタ</h1>
+            <p>RPG Maker MZ プロジェクトを読み込んで<br>パララックスマップを視覚的に編集</p>
+            <div class="drop-zone" id="dropZone">
+                <div class="icon">📁</div>
+                <p><strong>プロジェクトフォルダをドロップ</strong></p>
+                <p style="font-size:12px; color:#8b949e; margin-top:10px;">
+                    data, img フォルダを含むフォルダを選択
+                </p>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="selectProjectFolder()">
+                📂 プロジェクトフォルダを選択
+            </button>
+            <p style="font-size:11px; color:#666; margin-top:20px;">
+                Chrome / Edge で開いてください
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Editor -->
+    <div id="sidebar">
+        <div class="sidebar-header">📁 プロジェクト</div>
+
+        <div class="panel">
+            <div class="panel-title">マップ</div>
+            <div class="panel-body">
+                <select id="mapSelect" onchange="loadSelectedMap()">
+                    <option value="">-- マップを選択 --</option>
+                </select>
+                <div style="height:10px;"></div>
+                <select id="parallaxSelect" onchange="changeParallax()">
+                    <option value="">-- パララックス画像 --</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="panel" id="sizePanel">
+            <div class="panel-title">サイズ診断</div>
+            <div class="panel-body">
+                <div class="size-info" id="sizeInfo">
+                    <p style="color:#8b949e; font-size:12px;">マップを読み込むと表示</p>
+                </div>
+                <div class="manual-size" id="manualSize" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid #30363d;">
+                    <label style="font-size:11px; color:#8b949e; display:block; margin-bottom:6px;">マップサイズ (タイル数)</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="number" id="manualWidth" min="1" max="500" style="width:70px; padding:6px 8px; text-align:center;">
+                        <span style="color:#8b949e;">x</span>
+                        <input type="number" id="manualHeight" min="1" max="500" style="width:70px; padding:6px 8px; text-align:center;">
+                        <button class="btn btn-sm" onclick="applyManualSize()">適用</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">編集ツール</div>
+            <div class="panel-body">
+                <div class="tool-grid">
+                    <button class="tool-btn active" data-tool="select" onclick="setTool('select')">
+                        <span class="icon">🔍</span>
+                        選択・移動
+                    </button>
+                    <button class="tool-btn" data-tool="passable" onclick="setTool('passable')">
+                        <span class="icon">🟢</span>
+                        通行可能
+                    </button>
+                    <button class="tool-btn" data-tool="blocked" onclick="setTool('blocked')">
+                        <span class="icon">🔴</span>
+                        通行禁止
+                    </button>
+                    <button class="tool-btn" data-tool="overlay" onclick="setTool('overlay')">
+                        <span class="icon">🏠</span>
+                        オーバーレイ
+                    </button>
+                    <button class="tool-btn" data-tool="overlayErase" onclick="setTool('overlayErase')">
+                        <span class="icon">🧹</span>
+                        OL消去
+                    </button>
+                    <button class="tool-btn" data-tool="fill" onclick="setTool('fill')">
+                        <span class="icon">🪣</span>
+                        塗りつぶし
+                    </button>
+                </div>
+                <div style="margin-top:15px;">
+                    <label style="font-size:12px; color:#8b949e; display:block; margin-bottom:8px;">ブラシサイズ</label>
+                    <div class="brush-size">
+                        <input type="range" id="brushSize" min="1" max="5" value="1" oninput="updateBrushLabel()">
+                        <span id="brushLabel">1x1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title" style="display:flex; justify-content:space-between; align-items:center;">
+                イベント
+                <button class="btn btn-sm" onclick="addEvent()">+ 追加</button>
+            </div>
+            <div class="panel-body">
+                <div class="event-list" id="eventList">
+                    <p style="color:#8b949e; font-size:12px; text-align:center; padding:20px;">
+                        マップを選択してください
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-body">
+                <button class="btn btn-primary btn-full" onclick="saveAll()" style="font-size:14px;">
+                    📦 全て保存 (3ファイル)
+                </button>
+                <div style="height:12px;"></div>
+                <div style="display:flex; gap:4px;">
+                    <button class="btn btn-sm" style="flex:1;" onclick="saveMap()">
+                        💾 JSON
+                    </button>
+                    <button class="btn btn-sm" style="flex:1;" onclick="saveOverlayImage()">
+                        🏠 PNG
+                    </button>
+                    <button class="btn btn-sm" style="flex:1;" onclick="saveOverlayData()">
+                        📄 OL
+                    </button>
+                </div>
+                <div style="height:8px;"></div>
+                <button class="btn btn-sm btn-full" onclick="loadOverlayData()">
+                    📂 OLデータ読込
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main">
+        <div id="toolbar">
+            <div class="toolbar-group">
+                <label><input type="checkbox" id="showGrid" checked onchange="render()"> グリッド</label>
+                <label><input type="checkbox" id="showPassage" checked onchange="render()"> 通行判定</label>
+                <label><input type="checkbox" id="showEvents" checked onchange="render()"> イベント</label>
+                <label style="color:#a855f7;"><input type="checkbox" id="showOverlay" checked onchange="render()"> オーバーレイ</label>
+                <label style="color:#a855f7;"><input type="checkbox" id="subTileMode" checked onchange="toggleSubTileMode()"> サブタイル(24px)</label>
+            </div>
+
+            <div class="toolbar-group">
+                <label>ズーム</label>
+                <select id="zoom" onchange="setZoom(this.value)" style="width:80px;">
+                    <option value="0.25">25%</option>
+                    <option value="0.5">50%</option>
+                    <option value="1" selected>100%</option>
+                    <option value="2">200%</option>
+                    <option value="3">300%</option>
+                    <option value="4">400%</option>
+                    <option value="5">500%</option>
+                </select>
+            </div>
+
+
+            <div class="toolbar-group" style="margin-left:auto;">
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-color legend-passable"></div>通行可</div>
+                    <div class="legend-item"><div class="legend-color legend-blocked"></div>通行禁</div>
+                    <div class="legend-item"><div class="legend-color legend-overlay"></div>OL</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="canvasContainer">
+            <canvas id="mapCanvas" class="tool-select"></canvas>
+        </div>
+
+        <div id="statusBar">
+            <div class="status-item">
+                <span class="coord-display" id="coords">X: 0, Y: 0</span>
+                <span id="tileInfo">--</span>
+            </div>
+            <div class="status-item">
+                <span id="status">プロジェクトを読み込んでください</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="properties">
+        <div class="sidebar-header">プロパティ</div>
+        <div id="propContent">
+            <div class="prop-group">
+                <p style="color:#8b949e; font-size:12px; text-align:center; padding:30px 0;">
+                    イベントを選択すると<br>ここに詳細が表示されます
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <h3>📋 JSONエクスポート</h3>
+            <p style="font-size:12px; color:#8b949e; margin-bottom:15px;">
+                このJSONをdata/MapXXX.jsonに保存してください
+            </p>
+            <textarea id="exportText" readonly></textarea>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="copyExport()">📋 コピー</button>
+                <button class="btn" onclick="downloadExport()">⬇️ ダウンロード</button>
+                <button class="btn" onclick="closeModal('exportModal')">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resize Modal -->
+    <div class="modal" id="resizeModal">
+        <div class="modal-content">
+            <h3>🖼️ 画像リサイズ</h3>
+            <p style="font-size:12px; color:#8b949e; margin-bottom:15px;">
+                パララックス画像を48pxの倍数にリサイズします
+            </p>
+            <div id="resizeInfo" style="background:#0d1117; padding:12px; border-radius:6px; margin-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; font-size:13px;">
+                    <span style="color:#8b949e;">現在のサイズ:</span>
+                    <span id="resizeCurrentSize" style="font-family:monospace;">--</span>
+                </div>
+            </div>
+
+            <div id="resizeOptions">
+                <label class="resize-option selected" onclick="selectResizeOption(this, 'crop')">
+                    <input type="radio" name="resizeMode" value="crop" checked>
+                    <div class="resize-option-content">
+                        <div class="resize-option-title">✂️ 切り捨て (Crop)</div>
+                        <div class="resize-option-desc">余分なピクセルを右端・下端から削除</div>
+                        <div class="resize-option-result" id="cropResult">--</div>
+                    </div>
+                </label>
+                <label class="resize-option" onclick="selectResizeOption(this, 'pad')">
+                    <input type="radio" name="resizeMode" value="pad">
+                    <div class="resize-option-content">
+                        <div class="resize-option-title">📐 パディング (Pad)</div>
+                        <div class="resize-option-desc">透明ピクセルで右端・下端を埋める</div>
+                        <div class="resize-option-result" id="padResult">--</div>
+                    </div>
+                </label>
+                <label class="resize-option" onclick="selectResizeOption(this, 'scale')">
+                    <input type="radio" name="resizeMode" value="scale">
+                    <div class="resize-option-content">
+                        <div class="resize-option-title">🔄 スケール (Scale)</div>
+                        <div class="resize-option-desc">最も近いサイズにリサイズ（推奨）</div>
+                        <div class="resize-option-result" id="scaleResult">--</div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="executeResize()">📥 リサイズしてダウンロード</button>
+                <button class="btn" onclick="closeModal('resizeModal')">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // グローバル状態
+        // ========================================
+        const TILE = 48;
+
+        let projectFiles = {};      // ファイルパス → コンテンツ
+        let mapInfos = [];          // MapInfos.json の内容
+        let parallaxList = [];      // 利用可能なパララックス画像
+
+        let currentMapId = null;    // 現在編集中のマップID
+        let currentMapData = null;  // 現在のマップJSONデータ
+        let parallaxImg = new Image();
+
+        let mapWidth = 20;
+        let mapHeight = 15;
+        let zoom = 1;
+        let brushSize = 1;
+
+        let events = [];            // イベントリスト
+        let selectedEventId = null;
+
+        let passageData = [];       // 通行判定データ (0-15: サブタイル4ビット、24px単位)
+        let overlayData = [];       // オーバーレイデータ (BigInt: 64ビット、6px単位)
+        let subTileMode = true;     // サブタイルモード（デフォルトON）
+        let currentTool = 'select';
+        let isDragging = false;
+        let lastPaintedTile = null;
+
+        // 範囲選択用
+        let selectionStart = null;  // {x, y}
+        let selectionEnd = null;    // {x, y}
+
+        // Undo用履歴
+        const undoStack = [];
+        const MAX_UNDO = 50;
+
+        // 現在のパララックス名
+        let currentParallaxName = '';
+
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ========================================
+        // プロジェクト読み込み
+        // ========================================
+        async function selectProjectFolder() {
+            try {
+                const dirHandle = await window.showDirectoryPicker();
+                await loadProjectFromHandle(dirHandle);
+            } catch (e) {
+                if (e.name !== 'AbortError') {
+                    alert('エラー: ' + e.message);
+                }
+            }
+        }
+
+        async function loadProjectFromHandle(dirHandle) {
+            projectFiles = {};
+            updateStatus('読み込み中...');
+
+            try {
+                await readDirectory(dirHandle, '', 0);
+            } catch (e) {
+                console.error('Directory read error:', e);
+            }
+
+            // MapInfos.json を探す
+            const mapInfosKey = Object.keys(projectFiles).find(k => k.endsWith('MapInfos.json'));
+            if (mapInfosKey) {
+                try {
+                    mapInfos = JSON.parse(projectFiles[mapInfosKey]);
+                    populateMapSelect();
+                } catch (e) {
+                    console.error('MapInfos parse error:', e);
+                    alert('MapInfos.json の読み込みに失敗しました');
+                    return;
+                }
+            } else {
+                alert('MapInfos.json が見つかりません。\nプロジェクトのルートフォルダを選択してください。');
+                return;
+            }
+
+            // パララックス画像を探す
+            parallaxList = Object.keys(projectFiles)
+                .filter(f => f.includes('parallaxes') && f.endsWith('.png'))
+                .map(f => f.split('/').pop().replace('.png', ''));
+            populateParallaxSelect();
+
+            document.getElementById('startScreen').classList.add('hidden');
+            updateStatus(`プロジェクト読み込み完了 - ${mapInfos.filter(m=>m).length}個のマップ`);
+        }
+
+        async function readDirectory(dirHandle, path, depth) {
+            if (depth > 4) return;
+
+            for await (const entry of dirHandle.values()) {
+                const entryPath = path ? `${path}/${entry.name}` : entry.name;
+
+                if (entry.kind === 'file') {
+                    const ext = entry.name.split('.').pop().toLowerCase();
+                    if (['json', 'png'].includes(ext)) {
+                        try {
+                            const file = await entry.getFile();
+                            if (ext === 'json') {
+                                projectFiles[entryPath] = await file.text();
+                            } else {
+                                projectFiles[entryPath] = URL.createObjectURL(file);
+                            }
+                        } catch (e) {
+                            console.warn('読み込み失敗:', entryPath);
+                        }
+                    }
+                } else if (entry.kind === 'directory') {
+                    await readDirectory(entry, entryPath, depth + 1);
+                }
+            }
+        }
+
+        function populateMapSelect() {
+            const select = document.getElementById('mapSelect');
+            select.innerHTML = '<option value="">-- マップを選択 --</option>';
+
+            mapInfos.forEach(info => {
+                if (info && info.id) {
+                    const opt = document.createElement('option');
+                    opt.value = info.id;
+                    opt.textContent = `${String(info.id).padStart(3, '0')}: ${info.name || '(名前なし)'}`;
+                    select.appendChild(opt);
+                }
+            });
+        }
+
+        function populateParallaxSelect() {
+            const select = document.getElementById('parallaxSelect');
+            select.innerHTML = '<option value="">-- パララックス画像 --</option>';
+
+            parallaxList.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                select.appendChild(opt);
+            });
+        }
+
+        // ========================================
+        // マップ読み込み
+        // ========================================
+        function loadSelectedMap() {
+            const mapId = document.getElementById('mapSelect').value;
+            if (!mapId) return;
+
+            // マップファイルを探す
+            const mapFileName = `Map${String(mapId).padStart(3, '0')}.json`;
+            const mapFileKey = Object.keys(projectFiles).find(k => k.endsWith(mapFileName));
+
+            if (!mapFileKey) {
+                alert(`${mapFileName} が見つかりません`);
+                return;
+            }
+
+            try {
+                currentMapId = parseInt(mapId);
+                currentMapData = JSON.parse(projectFiles[mapFileKey]);
+                loadMapData(currentMapData);
+                updateStatus(`Map${String(mapId).padStart(3, '0')}: ${currentMapData.displayName || ''}`);
+            } catch (e) {
+                alert('マップ読み込みエラー: ' + e.message);
+            }
+        }
+
+        function loadMapData(data) {
+            mapWidth = data.width || 20;
+            mapHeight = data.height || 15;
+
+            // イベント読み込み
+            events = [];
+            if (data.events) {
+                data.events.forEach(ev => {
+                    if (ev && ev.id) {
+                        events.push({
+                            id: ev.id,
+                            name: ev.name || '',
+                            x: ev.x || 0,
+                            y: ev.y || 0,
+                            note: ev.note || '',
+                            originalData: ev
+                        });
+                    }
+                });
+            }
+
+            // パララックス画像
+            if (data.parallaxName) {
+                document.getElementById('parallaxSelect').value = data.parallaxName;
+                loadParallaxImage(data.parallaxName);
+            } else {
+                parallaxImg = new Image();
+            }
+
+            // 通行判定データ初期化
+            initPassageData();
+
+            // サブタイル通行データがあれば優先して読み込む
+            if (data.subPassage && data.subPassage.length > 0) {
+                for (let i = 0; i < data.subPassage.length && i < passageData.length; i++) {
+                    passageData[i] = data.subPassage[i];
+                }
+                console.log('SubPassage data loaded:', data.subPassage.length, 'tiles');
+            } else if (data.data && data.data.length > 0) {
+                // 旧形式: タイルデータから変換
+                const tilesPerLayer = mapWidth * mapHeight;
+                for (let i = 0; i < tilesPerLayer && i < data.data.length; i++) {
+                    // タイルID 0 = 通行禁止(15), それ以外 = 通行可能(0)
+                    passageData[i] = (data.data[i] === 0) ? 15 : 0;
+                }
+            }
+
+            // オーバーレイデータ読み込み（BigInt文字列形式）
+            if (data.overlay && data.overlay.length > 0) {
+                for (let i = 0; i < data.overlay.length && i < overlayData.length; i++) {
+                    // 文字列ならBigIntに変換、数値ならそのままBigIntに
+                    const val = data.overlay[i];
+                    overlayData[i] = typeof val === 'string' ? BigInt(val) : BigInt(val || 0);
+                }
+                console.log('Overlay data loaded:', data.overlay.length, 'tiles');
+            }
+
+            selectedEventId = null;
+            resizeCanvas();
+            render();
+            updateProperties();
+            updateEventList();
+            updateSizeInfo();
+        }
+
+        function loadParallaxImage(name) {
+            const key = Object.keys(projectFiles).find(k =>
+                k.includes('parallaxes') && k.endsWith(`${name}.png`)
+            );
+
+            if (key) {
+                currentParallaxName = name;
+                parallaxImg = new Image();
+                parallaxImg.onload = () => {
+                    resizeCanvas();
+                    render();
+                    updateSizeInfo();
+                };
+                parallaxImg.src = projectFiles[key];
+            }
+        }
+
+        function changeParallax() {
+            const name = document.getElementById('parallaxSelect').value;
+            if (name) {
+                loadParallaxImage(name);
+                if (currentMapData) {
+                    currentMapData.parallaxName = name;
+                    currentMapData.parallaxShow = true;
+                }
+            }
+        }
+
+        // ========================================
+        // キャンバス描画
+        // ========================================
+        function initPassageData() {
+            passageData = new Array(mapWidth * mapHeight).fill(0);
+            overlayData = new Array(mapWidth * mapHeight).fill(0n);  // BigInt
+        }
+
+        function resizeCanvas() {
+            // キャンバスは常に100%サイズ（CSSでズーム）
+            canvas.width = mapWidth * TILE;
+            canvas.height = mapHeight * TILE;
+            canvas.style.transform = `scale(${zoom})`;
+            canvas.style.transformOrigin = 'top left';
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.imageSmoothingEnabled = false;
+
+            const showGrid = document.getElementById('showGrid').checked;
+            const showPassage = document.getElementById('showPassage').checked;
+            const showEvents = document.getElementById('showEvents').checked;
+
+            // 背景（パララックス画像）
+            if (parallaxImg.complete && parallaxImg.naturalWidth > 0) {
+                ctx.drawImage(parallaxImg, 0, 0, canvas.width, canvas.height);
+            } else {
+                // グラデーション背景
+                const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                grad.addColorStop(0, '#1a1a2e');
+                grad.addColorStop(1, '#16213e');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // 通行判定オーバーレイ
+            if (showPassage) {
+                const subSize = TILE / 2; // サブタイルサイズ（24px）
+
+                for (let y = 0; y < mapHeight; y++) {
+                    for (let x = 0; x < mapWidth; x++) {
+                        const idx = y * mapWidth + x;
+                        const px = x * TILE;
+                        const py = y * TILE;
+                        const value = passageData[idx] || 0;
+
+                        if (subTileMode) {
+                            // サブタイルモード: 4分割表示
+                            for (let sy = 0; sy < 2; sy++) {
+                                for (let sx = 0; sx < 2; sx++) {
+                                    const bit = sy * 2 + sx;
+                                    const blocked = (value & (1 << bit)) !== 0;
+                                    const spx = px + sx * subSize;
+                                    const spy = py + sy * subSize;
+
+                                    if (blocked) {
+                                        ctx.fillStyle = 'rgba(239, 68, 68, 0.5)';
+                                        ctx.fillRect(spx, spy, subSize, subSize);
+                                        // 小さいXマーク
+                                        ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+                                        ctx.lineWidth = 1;
+                                        ctx.beginPath();
+                                        ctx.moveTo(spx + 2, spy + 2);
+                                        ctx.lineTo(spx + subSize - 2, spy + subSize - 2);
+                                        ctx.moveTo(spx + subSize - 2, spy + 2);
+                                        ctx.lineTo(spx + 2, spy + subSize - 2);
+                                        ctx.stroke();
+                                    } else {
+                                        ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
+                                        ctx.fillRect(spx, spy, subSize, subSize);
+                                    }
+                                }
+                            }
+                        } else {
+                            // 通常モード: タイル単位表示
+                            const size = TILE;
+                            const isBlocked = value === 15; // 全禁止
+                            const isPartial = value > 0 && value < 15; // 部分禁止
+
+                            if (isBlocked) {
+                                ctx.fillStyle = 'rgba(239, 68, 68, 0.5)';
+                                ctx.fillRect(px, py, size, size);
+                                ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+                                ctx.lineWidth = 2;
+                                ctx.beginPath();
+                                ctx.moveTo(px + 4, py + 4);
+                                ctx.lineTo(px + size - 4, py + size - 4);
+                                ctx.moveTo(px + size - 4, py + 4);
+                                ctx.lineTo(px + 4, py + size - 4);
+                                ctx.stroke();
+                            } else if (isPartial) {
+                                // 部分的に禁止 - オレンジ
+                                ctx.fillStyle = 'rgba(251, 146, 60, 0.4)';
+                                ctx.fillRect(px, py, size, size);
+                                ctx.fillStyle = 'rgba(251, 146, 60, 0.9)';
+                                ctx.font = 'bold 12px sans-serif';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillText(value, px + size/2, py + size/2);
+                            } else {
+                                ctx.fillStyle = 'rgba(34, 197, 94, 0.2)';
+                                ctx.fillRect(px, py, size, size);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // オーバーレイ表示（紫）- 6px単位（64分割）
+            const showOverlay = document.getElementById('showOverlay').checked;
+            if (showOverlay) {
+                const eighthSize = TILE / 8;  // 6px
+                ctx.fillStyle = 'rgba(168, 85, 247, 0.5)';
+                for (let y = 0; y < mapHeight; y++) {
+                    for (let x = 0; x < mapWidth; x++) {
+                        const idx = y * mapWidth + x;
+                        const val = overlayData[idx] || 0n;
+                        if (val > 0n) {
+                            for (let ey = 0; ey < 8; ey++) {
+                                for (let ex = 0; ex < 8; ex++) {
+                                    const bit = BigInt(ey * 8 + ex);
+                                    if (val & (1n << bit)) {
+                                        const px = x * TILE + ex * eighthSize;
+                                        const py = y * TILE + ey * eighthSize;
+                                        ctx.fillRect(px, py, eighthSize, eighthSize);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // グリッド（最適化版：パス一括描画）
+            if (showGrid) {
+                const isOverlayTool = (currentTool === 'overlay' || currentTool === 'overlayErase');
+
+                // オーバーレイツール: 6pxグリッド（紫）
+                if (isOverlayTool) {
+                    const eighthSize = TILE / 8;
+                    ctx.strokeStyle = 'rgba(168, 85, 247, 0.15)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    for (let x = 0; x <= mapWidth * 8; x++) {
+                        ctx.moveTo(x * eighthSize + 0.5, 0);
+                        ctx.lineTo(x * eighthSize + 0.5, canvas.height);
+                    }
+                    for (let y = 0; y <= mapHeight * 8; y++) {
+                        ctx.moveTo(0, y * eighthSize + 0.5);
+                        ctx.lineTo(canvas.width, y * eighthSize + 0.5);
+                    }
+                    ctx.stroke();
+                }
+
+                // サブタイルモード: 24pxグリッド
+                if (subTileMode && !isOverlayTool) {
+                    const subSize = TILE / 2;
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    for (let x = 0; x <= mapWidth * 2; x++) {
+                        ctx.moveTo(x * subSize + 0.5, 0);
+                        ctx.lineTo(x * subSize + 0.5, canvas.height);
+                    }
+                    for (let y = 0; y <= mapHeight * 2; y++) {
+                        ctx.moveTo(0, y * subSize + 0.5);
+                        ctx.lineTo(canvas.width, y * subSize + 0.5);
+                    }
+                    ctx.stroke();
+                }
+
+                // メイングリッド（48px）
+                const highlight = subTileMode || isOverlayTool;
+                ctx.strokeStyle = highlight ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = highlight ? 2 : 1;
+                ctx.beginPath();
+                for (let x = 0; x <= mapWidth; x++) {
+                    ctx.moveTo(x * TILE + 0.5, 0);
+                    ctx.lineTo(x * TILE + 0.5, canvas.height);
+                }
+                for (let y = 0; y <= mapHeight; y++) {
+                    ctx.moveTo(0, y * TILE + 0.5);
+                    ctx.lineTo(canvas.width, y * TILE + 0.5);
+                }
+                ctx.stroke();
+            }
+
+            // イベント
+            if (showEvents) {
+                events.forEach(ev => {
+                    const px = ev.x * TILE;
+                    const py = ev.y * TILE;
+                    const size = TILE;
+                    const isSelected = ev.id === selectedEventId;
+
+                    // 背景
+                    ctx.fillStyle = isSelected ? '#58a6ff' : '#a855f7';
+                    ctx.globalAlpha = 0.85;
+                    ctx.beginPath();
+                    ctx.roundRect(px + 3, py + 3, size - 6, size - 6, 4);
+                    ctx.fill();
+
+                    // 枠
+                    ctx.globalAlpha = 1;
+                    ctx.strokeStyle = isSelected ? '#ffffff' : '#000000';
+                    ctx.lineWidth = isSelected ? 3 : 1;
+                    ctx.beginPath();
+                    ctx.roundRect(px + 3, py + 3, size - 6, size - 6, 4);
+                    ctx.stroke();
+
+                    // ID
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 13px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(ev.id, px + size / 2, py + size / 2);
+                });
+            }
+
+            // 選択範囲プレビュー
+            const selectionTools = ['passable', 'blocked', 'overlay', 'overlayErase'];
+            if (isDragging && selectionStart && selectionEnd && selectionTools.includes(currentTool)) {
+                const sel = normalizeSelection();
+                if (sel) {
+                    // ツールに応じたグリッドサイズ
+                    const isOverlayTool = (currentTool === 'overlay' || currentTool === 'overlayErase');
+                    let gridUnit;
+                    if (isOverlayTool) {
+                        gridUnit = TILE / 8;  // 6px
+                    } else if (subTileMode) {
+                        gridUnit = TILE / 2;  // 24px
+                    } else {
+                        gridUnit = TILE;      // 48px
+                    }
+
+                    const px = sel.x1 * gridUnit;
+                    const py = sel.y1 * gridUnit;
+                    const pw = (sel.x2 - sel.x1 + 1) * gridUnit;
+                    const ph = (sel.y2 - sel.y1 + 1) * gridUnit;
+
+                    // プレビュー塗りつぶし色
+                    const colors = {
+                        passable: 'rgba(34, 197, 94, 0.4)',
+                        blocked: 'rgba(239, 68, 68, 0.4)',
+                        overlay: 'rgba(168, 85, 247, 0.4)',
+                        overlayErase: 'rgba(100, 100, 100, 0.4)'
+                    };
+                    const strokeColors = {
+                        passable: '#22c55e',
+                        blocked: '#ef4444',
+                        overlay: '#a855f7',
+                        overlayErase: '#888888'
+                    };
+
+                    // 右クリック時は消去色を使用
+                    const effectiveTool = (currentTool === 'overlay' && isRightClickErase) ? 'overlayErase' : currentTool;
+                    ctx.fillStyle = colors[effectiveTool];
+                    ctx.fillRect(px, py, pw, ph);
+
+                    // 選択枠
+                    ctx.strokeStyle = strokeColors[effectiveTool];
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([8, 4]);
+                    ctx.strokeRect(px, py, pw, ph);
+                    ctx.setLineDash([]);
+
+                    // サイズ表示
+                    const unitLabel = isOverlayTool ? '(6px)' : (subTileMode ? '(24px)' : '');
+                    const sizeText = `${sel.x2 - sel.x1 + 1} x ${sel.y2 - sel.y1 + 1} ${unitLabel}`;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 14px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(sizeText, px + pw / 2, py - 5);
+                }
+            }
+        }
+
+        // ========================================
+        // サイズ診断・調整
+        // ========================================
+        function checkSizeAlignment() {
+            if (!parallaxImg.complete || !parallaxImg.naturalWidth) return null;
+
+            const imgW = parallaxImg.naturalWidth;
+            const imgH = parallaxImg.naturalHeight;
+            const tilesX = imgW / TILE;
+            const tilesY = imgH / TILE;
+            const isAlignedX = Number.isInteger(tilesX);
+            const isAlignedY = Number.isInteger(tilesY);
+
+            return {
+                imgW, imgH,
+                tilesX, tilesY,
+                isAlignedX, isAlignedY,
+                isAligned: isAlignedX && isAlignedY,
+                // 各モードの結果サイズ
+                cropW: Math.floor(tilesX) * TILE,
+                cropH: Math.floor(tilesY) * TILE,
+                padW: Math.ceil(tilesX) * TILE,
+                padH: Math.ceil(tilesY) * TILE,
+                scaleW: Math.round(tilesX) * TILE,
+                scaleH: Math.round(tilesY) * TILE,
+                // 推奨タイル数
+                recommendTilesX: Math.round(tilesX),
+                recommendTilesY: Math.round(tilesY)
+            };
+        }
+
+        function updateSizeInfo() {
+            const container = document.getElementById('sizeInfo');
+            const info = checkSizeAlignment();
+
+            if (!info) {
+                container.innerHTML = '<p style="color:#8b949e; font-size:12px;">パララックス画像を選択してください</p>';
+                return;
+            }
+
+            const mapMatch = (mapWidth === info.recommendTilesX && mapHeight === info.recommendTilesY);
+
+            let html = `
+                <div class="size-row">
+                    <span class="size-label">画像サイズ</span>
+                    <span class="size-value">${info.imgW} x ${info.imgH} px</span>
+                </div>
+                <div class="size-row">
+                    <span class="size-label">タイル換算</span>
+                    <span class="size-value ${info.isAligned ? 'ok' : 'warn'}">
+                        ${info.tilesX.toFixed(2)} x ${info.tilesY.toFixed(2)}
+                    </span>
+                </div>
+                <div class="size-row">
+                    <span class="size-label">マップサイズ</span>
+                    <span class="size-value ${mapMatch ? 'ok' : 'error'}">
+                        ${mapWidth} x ${mapHeight} タイル
+                    </span>
+                </div>
+            `;
+
+            // 警告表示
+            if (!info.isAligned) {
+                html += `
+                    <div class="size-warning">
+                        ⚠️ 画像サイズが48pxの倍数ではありません<br>
+                        <small>推奨: ${info.scaleW} x ${info.scaleH} px</small>
+                    </div>
+                `;
+            } else if (!mapMatch) {
+                html += `
+                    <div class="size-warning">
+                        ⚠️ マップサイズが画像と一致しません<br>
+                        <small>推奨: ${info.recommendTilesX} x ${info.recommendTilesY} タイル</small>
+                    </div>
+                `;
+            }
+
+            // アクションボタン
+            html += '<div class="size-actions">';
+
+            if (!mapMatch) {
+                html += `<button class="btn btn-sm btn-primary" onclick="autoAdjustMapSize()">
+                    🔧 マップサイズを自動調整
+                </button>`;
+            }
+
+            if (!info.isAligned) {
+                html += `<button class="btn btn-sm" onclick="showResizeModal()">
+                    🖼️ 画像をリサイズ
+                </button>`;
+            }
+
+            if (info.isAligned && mapMatch) {
+                html += '<p style="color:#22c55e; font-size:12px; text-align:center; margin-top:8px;">✓ サイズ問題なし</p>';
+            }
+
+            html += '</div>';
+
+            container.innerHTML = html;
+
+            // 手動サイズ入力欄を表示・更新
+            const manualDiv = document.getElementById('manualSize');
+            manualDiv.style.display = 'block';
+            document.getElementById('manualWidth').value = mapWidth;
+            document.getElementById('manualHeight').value = mapHeight;
+        }
+
+        function applyManualSize() {
+            const newWidth = parseInt(document.getElementById('manualWidth').value);
+            const newHeight = parseInt(document.getElementById('manualHeight').value);
+
+            if (!newWidth || !newHeight || newWidth < 1 || newHeight < 1) {
+                alert('有効なサイズを入力してください');
+                return;
+            }
+
+            if (newWidth > 500 || newHeight > 500) {
+                alert('サイズは500以下にしてください');
+                return;
+            }
+
+            if (newWidth === mapWidth && newHeight === mapHeight) {
+                updateStatus('サイズは変更されていません');
+                return;
+            }
+
+            changeMapSize(newWidth, newHeight);
+        }
+
+        function changeMapSize(newWidth, newHeight) {
+            // 範囲外になるイベントをチェック
+            const outOfBounds = events.filter(ev => ev.x >= newWidth || ev.y >= newHeight);
+
+            if (outOfBounds.length > 0) {
+                const names = outOfBounds.map(ev => `  ID:${ev.id} "${ev.name}" (${ev.x},${ev.y})`).join('\n');
+                const action = confirm(
+                    `以下の${outOfBounds.length}個のイベントがマップ範囲外になります:\n\n${names}\n\n` +
+                    `[OK] → 範囲内に自動移動\n[キャンセル] → サイズ変更を中止`
+                );
+
+                if (!action) {
+                    updateStatus('サイズ変更をキャンセルしました');
+                    return;
+                }
+            }
+
+            // Undo用に現在の状態を保存
+            saveUndoState();
+
+            // 範囲外イベントを範囲内に移動
+            events.forEach(ev => {
+                if (ev.x >= newWidth) ev.x = newWidth - 1;
+                if (ev.y >= newHeight) ev.y = newHeight - 1;
+            });
+
+            // 通行判定データをリサイズ
+            const newData = new Array(newWidth * newHeight).fill(0);
+
+            for (let y = 0; y < Math.min(mapHeight, newHeight); y++) {
+                for (let x = 0; x < Math.min(mapWidth, newWidth); x++) {
+                    const oldIdx = y * mapWidth + x;
+                    const newIdx = y * newWidth + x;
+                    newData[newIdx] = passageData[oldIdx];
+                }
+            }
+
+            passageData = newData;
+            mapWidth = newWidth;
+            mapHeight = newHeight;
+
+            if (currentMapData) {
+                currentMapData.width = newWidth;
+                currentMapData.height = newHeight;
+            }
+
+            resizeCanvas();
+            render();
+            updateEventList();
+            updateSizeInfo();
+            updateStatus(`マップサイズを ${newWidth} x ${newHeight} に変更しました`);
+        }
+
+        function autoAdjustMapSize() {
+            const info = checkSizeAlignment();
+            if (!info) return;
+
+            const newWidth = info.recommendTilesX;
+            const newHeight = info.recommendTilesY;
+
+            if (newWidth === mapWidth && newHeight === mapHeight) {
+                updateStatus('サイズ変更の必要はありません');
+                return;
+            }
+
+            changeMapSize(newWidth, newHeight);
+        }
+
+        // ========================================
+        // 画像リサイズ
+        // ========================================
+        let selectedResizeMode = 'crop';
+
+        function showResizeModal() {
+            const info = checkSizeAlignment();
+            if (!info) {
+                alert('パララックス画像を選択してください');
+                return;
+            }
+
+            document.getElementById('resizeCurrentSize').textContent = `${info.imgW} x ${info.imgH} px`;
+            document.getElementById('cropResult').textContent = `→ ${info.cropW} x ${info.cropH} px (${Math.floor(info.tilesX)} x ${Math.floor(info.tilesY)} タイル)`;
+            document.getElementById('padResult').textContent = `→ ${info.padW} x ${info.padH} px (${Math.ceil(info.tilesX)} x ${Math.ceil(info.tilesY)} タイル)`;
+            document.getElementById('scaleResult').textContent = `→ ${info.scaleW} x ${info.scaleH} px (${info.recommendTilesX} x ${info.recommendTilesY} タイル)`;
+
+            // 初期選択をリセット
+            selectedResizeMode = 'crop';
+            document.querySelectorAll('.resize-option').forEach((opt, i) => {
+                opt.classList.toggle('selected', i === 0);
+            });
+            document.querySelector('input[value="crop"]').checked = true;
+
+            document.getElementById('resizeModal').classList.add('show');
+        }
+
+        function selectResizeOption(element, mode) {
+            selectedResizeMode = mode;
+            document.querySelectorAll('.resize-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+        }
+
+        function executeResize() {
+            const info = checkSizeAlignment();
+            if (!info) return;
+
+            let targetW, targetH;
+
+            switch (selectedResizeMode) {
+                case 'crop':
+                    targetW = info.cropW;
+                    targetH = info.cropH;
+                    break;
+                case 'pad':
+                    targetW = info.padW;
+                    targetH = info.padH;
+                    break;
+                case 'scale':
+                    targetW = info.scaleW;
+                    targetH = info.scaleH;
+                    break;
+            }
+
+            // Canvasでリサイズ
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = targetW;
+            tempCanvas.height = targetH;
+
+            if (selectedResizeMode === 'scale') {
+                // スケールの場合はリサイズ
+                tempCtx.drawImage(parallaxImg, 0, 0, targetW, targetH);
+            } else {
+                // crop/padの場合は元サイズで描画（padは透明部分が自動で埋まる）
+                tempCtx.drawImage(parallaxImg, 0, 0);
+            }
+
+            // ダウンロード
+            tempCanvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentParallaxName}_${targetW}x${targetH}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                closeModal('resizeModal');
+                updateStatus(`${currentParallaxName}_${targetW}x${targetH}.png をダウンロードしました。img/parallaxes/ に配置してください`);
+            }, 'image/png');
+        }
+
+        // ========================================
+        // ツール
+        // ========================================
+        function setTool(tool) {
+            currentTool = tool;
+
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tool === tool);
+            });
+
+            // カーソル変更
+            canvas.className = `tool-${tool}`;
+
+            // グリッド表示更新（オーバーレイツールは6pxグリッド）
+            render();
+        }
+
+        function updateBrushLabel() {
+            brushSize = parseInt(document.getElementById('brushSize').value);
+            document.getElementById('brushLabel').textContent = `${brushSize}x${brushSize}`;
+        }
+
+        function paintTile(centerX, centerY, value) {
+            const halfBrush = Math.floor(brushSize / 2);
+
+            for (let dy = -halfBrush; dy <= halfBrush; dy++) {
+                for (let dx = -halfBrush; dx <= halfBrush; dx++) {
+                    const x = centerX + dx;
+                    const y = centerY + dy;
+
+                    if (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
+                        const idx = y * mapWidth + x;
+                        passageData[idx] = value;
+                    }
+                }
+            }
+        }
+
+        function floodFill(startX, startY, newValue) {
+            const idx = startY * mapWidth + startX;
+            const oldValue = passageData[idx];
+
+            if (oldValue === newValue) return;
+
+            const stack = [[startX, startY]];
+            const visited = new Set();
+
+            while (stack.length > 0) {
+                const [x, y] = stack.pop();
+                const key = `${x},${y}`;
+
+                if (visited.has(key)) continue;
+                if (x < 0 || x >= mapWidth || y < 0 || y >= mapHeight) continue;
+
+                const i = y * mapWidth + x;
+                if (passageData[i] !== oldValue) continue;
+
+                visited.add(key);
+                passageData[i] = newValue;
+
+                stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+            }
+        }
+
+        // 範囲塗りつぶし（通行判定）
+        function fillRect(x1, y1, x2, y2, value) {
+            const minX = Math.min(x1, x2);
+            const maxX = Math.max(x1, x2);
+            const minY = Math.min(y1, y2);
+            const maxY = Math.max(y1, y2);
+
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    if (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
+                        // 通常モード: 0=通行可、15=全禁止
+                        passageData[y * mapWidth + x] = value === 1 ? 15 : 0;
+                    }
+                }
+            }
+        }
+
+        // サブタイル範囲塗りつぶし（24px単位）
+        function fillSubRect(sx1, sy1, sx2, sy2, blocked) {
+            const minSX = Math.min(sx1, sx2);
+            const maxSX = Math.max(sx1, sx2);
+            const minSY = Math.min(sy1, sy2);
+            const maxSY = Math.max(sy1, sy2);
+
+            for (let sy = minSY; sy <= maxSY; sy++) {
+                for (let sx = minSX; sx <= maxSX; sx++) {
+                    // サブタイル座標からタイル座標とビット位置を計算
+                    const tileX = Math.floor(sx / 2);
+                    const tileY = Math.floor(sy / 2);
+                    const subX = sx % 2;
+                    const subY = sy % 2;
+
+                    if (tileX >= 0 && tileX < mapWidth && tileY >= 0 && tileY < mapHeight) {
+                        const idx = tileY * mapWidth + tileX;
+                        const bit = subY * 2 + subX;
+
+                        if (blocked) {
+                            passageData[idx] = (passageData[idx] || 0) | (1 << bit);
+                        } else {
+                            passageData[idx] = (passageData[idx] || 0) & ~(1 << bit);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 範囲塗りつぶし（オーバーレイ）- 6px単位（8分割タイル座標）
+        function fillOverlayRect(ex1, ey1, ex2, ey2, value) {
+            const minEX = Math.min(ex1, ex2);
+            const maxEX = Math.max(ex1, ex2);
+            const minEY = Math.min(ey1, ey2);
+            const maxEY = Math.max(ey1, ey2);
+
+            // 8分割タイル座標でループ (6px単位)
+            for (let ey = minEY; ey <= maxEY; ey++) {
+                for (let ex = minEX; ex <= maxEX; ex++) {
+                    // 8分割座標からタイル座標とビット位置を計算
+                    const tileX = Math.floor(ex / 8);
+                    const tileY = Math.floor(ey / 8);
+                    const subX = ex % 8;
+                    const subY = ey % 8;
+
+                    if (tileX >= 0 && tileX < mapWidth && tileY >= 0 && tileY < mapHeight) {
+                        const idx = tileY * mapWidth + tileX;
+                        const bit = BigInt(subY * 8 + subX);  // 64ビット (8x8)
+
+                        if (value === 1) {
+                            overlayData[idx] = (overlayData[idx] || 0n) | (1n << bit);
+                        } else {
+                            overlayData[idx] = (overlayData[idx] || 0n) & ~(1n << bit);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Undo機能（全状態を保存）
+        function saveUndoState() {
+            undoStack.push({
+                passageData: [...passageData],
+                overlayData: [...overlayData],
+                events: JSON.parse(JSON.stringify(events)),
+                mapWidth: mapWidth,
+                mapHeight: mapHeight
+            });
+            if (undoStack.length > MAX_UNDO) {
+                undoStack.shift();
+            }
+        }
+
+        function undo() {
+            if (undoStack.length === 0) {
+                updateStatus('元に戻す履歴がありません');
+                return;
+            }
+            const state = undoStack.pop();
+            passageData = state.passageData;
+            overlayData = state.overlayData;
+            events = state.events;
+            mapWidth = state.mapWidth;
+            mapHeight = state.mapHeight;
+
+            if (currentMapData) {
+                currentMapData.width = mapWidth;
+                currentMapData.height = mapHeight;
+            }
+
+            resizeCanvas();
+            render();
+            updateEventList();
+            updateProperties();
+            updateSizeInfo();
+            updateStatus('操作を元に戻しました');
+        }
+
+        // 選択範囲の正規化
+        function normalizeSelection() {
+            if (!selectionStart || !selectionEnd) return null;
+            return {
+                x1: Math.min(selectionStart.x, selectionEnd.x),
+                y1: Math.min(selectionStart.y, selectionEnd.y),
+                x2: Math.max(selectionStart.x, selectionEnd.x),
+                y2: Math.max(selectionStart.y, selectionEnd.y)
+            };
+        }
+
+        // ========================================
+        // マウスイベント
+        // ========================================
+        function getTileCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            // CSSスケールを考慮してキャンバス座標に変換
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const pixelX = (e.clientX - rect.left) * scaleX;
+            const pixelY = (e.clientY - rect.top) * scaleY;
+
+            // オーバーレイツールは6px単位
+            const isOverlayTool = (currentTool === 'overlay' || currentTool === 'overlayErase');
+
+            if (isOverlayTool) {
+                // 8分割タイル座標 (6px単位)
+                const eighthSize = TILE / 8;
+                const ex = Math.floor(pixelX / eighthSize);
+                const ey = Math.floor(pixelY / eighthSize);
+                return {
+                    x: Math.max(0, Math.min(mapWidth * 8 - 1, ex)),
+                    y: Math.max(0, Math.min(mapHeight * 8 - 1, ey)),
+                    isSubTile: false,
+                    isQuarterTile: true
+                };
+            } else if (subTileMode) {
+                // サブタイル座標 (24px単位)
+                const subSize = TILE / 2;
+                const sx = Math.floor(pixelX / subSize);
+                const sy = Math.floor(pixelY / subSize);
+                return {
+                    x: Math.max(0, Math.min(mapWidth * 2 - 1, sx)),
+                    y: Math.max(0, Math.min(mapHeight * 2 - 1, sy)),
+                    isSubTile: true,
+                    isQuarterTile: false
+                };
+            } else {
+                // タイル座標 (48px単位)
+                const x = Math.floor(pixelX / TILE);
+                const y = Math.floor(pixelY / TILE);
+                return {
+                    x: Math.max(0, Math.min(mapWidth - 1, x)),
+                    y: Math.max(0, Math.min(mapHeight - 1, y)),
+                    isSubTile: false,
+                    isQuarterTile: false
+                };
+            }
+        }
+
+        // サブタイルモード切り替え
+        function toggleSubTileMode() {
+            subTileMode = document.getElementById('subTileMode').checked;
+            render();
+            updateStatus(subTileMode ? 'サブタイルモード (24px単位)' : 'タイルモード (48px単位)');
+        }
+
+        // 右クリックでオーバーレイ消去フラグ
+        let isRightClickErase = false;
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (!currentMapData) return;
+
+            const {x, y} = getTileCoords(e);
+
+            // オーバーレイツール + 右クリック = 消去モード
+            if (currentTool === 'overlay' && e.button === 2) {
+                isRightClickErase = true;
+                isDragging = true;
+                selectionStart = {x, y};
+                selectionEnd = {x, y};
+                render();
+                return;
+            }
+
+            // 左クリックのみ処理
+            if (e.button !== 0) return;
+
+            isDragging = true;
+            isRightClickErase = false;
+
+            if (currentTool === 'select') {
+                const clicked = events.find(ev => ev.x === x && ev.y === y);
+                if (clicked) {
+                    selectEvent(clicked.id);
+                } else if (selectedEventId !== null) {
+                    const ev = events.find(e => e.id === selectedEventId);
+                    if (ev) {
+                        ev.x = x;
+                        ev.y = y;
+                        render();
+                        updateProperties();
+                    }
+                }
+            } else if (currentTool === 'passable' || currentTool === 'blocked' || currentTool === 'overlay' || currentTool === 'overlayErase') {
+                // 範囲選択開始
+                selectionStart = {x, y};
+                selectionEnd = {x, y};
+                render();
+            } else if (currentTool === 'fill') {
+                saveUndoState();
+                const idx = y * mapWidth + x;
+                const newValue = passageData[idx] === 0 ? 1 : 0;
+                floodFill(x, y, newValue);
+                render();
+            }
+        });
+
+        // 右クリックメニュー無効化（オーバーレイツール時）
+        canvas.addEventListener('contextmenu', (e) => {
+            if (currentTool === 'overlay') {
+                e.preventDefault();
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const {x, y} = getTileCoords(e);
+
+            // 座標表示更新
+            document.getElementById('coords').textContent = `X: ${x}, Y: ${y}`;
+
+            const idx = y * mapWidth + x;
+            const passable = passageData[idx] === 0;
+            document.getElementById('tileInfo').textContent = passable ? '通行可能' : '通行禁止';
+
+            if (!isDragging) return;
+
+            if (currentTool === 'select' && selectedEventId !== null) {
+                const ev = events.find(e => e.id === selectedEventId);
+                if (ev) {
+                    ev.x = x;
+                    ev.y = y;
+                    render();
+                }
+            } else if (currentTool === 'passable' || currentTool === 'blocked' || currentTool === 'overlay' || currentTool === 'overlayErase') {
+                // 範囲選択更新
+                selectionEnd = {x, y};
+                render();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            if (!isDragging) return;
+
+            if ((currentTool === 'passable' || currentTool === 'blocked') && selectionStart && selectionEnd) {
+                // 範囲塗りつぶし実行
+                saveUndoState();
+                const sel = normalizeSelection();
+                if (sel) {
+                    const blocked = currentTool === 'blocked';
+
+                    if (subTileMode) {
+                        // サブタイルモード: 24px単位
+                        fillSubRect(sel.x1, sel.y1, sel.x2, sel.y2, blocked);
+                        const count = (sel.x2 - sel.x1 + 1) * (sel.y2 - sel.y1 + 1);
+                        updateStatus(`${count}サブタイルを${blocked ? '通行禁止' : '通行可能'}に設定`);
+                    } else {
+                        // 通常モード: 48px単位
+                        fillRect(sel.x1, sel.y1, sel.x2, sel.y2, blocked ? 1 : 0);
+                        const count = (sel.x2 - sel.x1 + 1) * (sel.y2 - sel.y1 + 1);
+                        updateStatus(`${count}タイルを${blocked ? '通行禁止' : '通行可能'}に設定`);
+                    }
+                }
+            }
+
+            if ((currentTool === 'overlay' || currentTool === 'overlayErase') && selectionStart && selectionEnd) {
+                // オーバーレイ範囲塗りつぶし実行（6px単位）
+                saveUndoState();
+                const sel = normalizeSelection();
+                if (sel) {
+                    // 右クリック or overlayEraseツール = 消去
+                    const isErase = isRightClickErase || currentTool === 'overlayErase';
+                    const value = isErase ? 0 : 1;
+                    fillOverlayRect(sel.x1, sel.y1, sel.x2, sel.y2, value);
+                    const count = (sel.x2 - sel.x1 + 1) * (sel.y2 - sel.y1 + 1);
+                    updateStatus(`${count}セル(6px)を${isErase ? 'オーバーレイ解除' : 'オーバーレイに設定'}`);
+                }
+            }
+            isRightClickErase = false;
+
+            isDragging = false;
+            selectionStart = null;
+            selectionEnd = null;
+            render();
+
+            if (currentTool === 'select') {
+                updateProperties();
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            // ドラッグ中に離れた場合はキャンセル
+            if (isDragging && (currentTool === 'passable' || currentTool === 'blocked' || currentTool === 'overlay' || currentTool === 'overlayErase')) {
+                isDragging = false;
+                selectionStart = null;
+                selectionEnd = null;
+                render();
+            }
+        });
+
+        // マウスホイールでズーム
+        const container = document.getElementById('canvasContainer');
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomLevels = [0.25, 0.5, 1, 2, 3, 4, 5];
+            const currentIdx = zoomLevels.indexOf(zoom);
+            let newIdx;
+            if (e.deltaY < 0) {
+                // ズームイン
+                newIdx = Math.min(currentIdx + 1, zoomLevels.length - 1);
+            } else {
+                // ズームアウト
+                newIdx = Math.max(currentIdx - 1, 0);
+            }
+            if (newIdx !== currentIdx) {
+                zoom = zoomLevels[newIdx];
+                document.getElementById('zoom').value = zoom;
+                resizeCanvas();
+                render();
+            }
+        }, { passive: false });
+
+        // 中ボタンでパン（移動）
+        let isPanning = false;
+        let panStart = { x: 0, y: 0 };
+        let scrollStart = { x: 0, y: 0 };
+
+        container.addEventListener('mousedown', (e) => {
+            if (e.button === 1) { // 中ボタン
+                e.preventDefault();
+                isPanning = true;
+                panStart = { x: e.clientX, y: e.clientY };
+                scrollStart = { x: container.scrollLeft, y: container.scrollTop };
+                container.style.cursor = 'grabbing';
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                const dx = e.clientX - panStart.x;
+                const dy = e.clientY - panStart.y;
+                container.scrollLeft = scrollStart.x - dx;
+                container.scrollTop = scrollStart.y - dy;
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (e.button === 1 && isPanning) {
+                isPanning = false;
+                container.style.cursor = '';
+            }
+        });
+
+        // 中ボタンのデフォルト動作を無効化
+        container.addEventListener('auxclick', (e) => {
+            if (e.button === 1) e.preventDefault();
+        });
+
+        // ========================================
+        // キーボードイベント
+        // ========================================
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+S で保存
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveMap();
+                return;
+            }
+
+            // Ctrl+Z で元に戻す
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                undo();
+                return;
+            }
+
+            // イベント移動
+            if (selectedEventId === null) return;
+            const ev = events.find(e => e.id === selectedEventId);
+            if (!ev) return;
+
+            let handled = true;
+            switch (e.key) {
+                case 'ArrowUp': ev.y = Math.max(0, ev.y - 1); break;
+                case 'ArrowDown': ev.y = Math.min(mapHeight - 1, ev.y + 1); break;
+                case 'ArrowLeft': ev.x = Math.max(0, ev.x - 1); break;
+                case 'ArrowRight': ev.x = Math.min(mapWidth - 1, ev.x + 1); break;
+                case 'Delete': deleteEvent(ev.id); return;
+                default: handled = false;
+            }
+
+            if (handled) {
+                e.preventDefault();
+                render();
+                updateProperties();
+            }
+        });
+
+        // ========================================
+        // イベント管理
+        // ========================================
+        function updateEventList() {
+            const list = document.getElementById('eventList');
+
+            if (events.length === 0) {
+                list.innerHTML = '<p style="color:#8b949e; font-size:12px; text-align:center; padding:20px;">イベントなし</p>';
+                return;
+            }
+
+            list.innerHTML = events.map(ev => `
+                <div class="event-item ${ev.id === selectedEventId ? 'selected' : ''}"
+                     onclick="selectEvent(${ev.id})"
+                     ondblclick="focusEvent(${ev.id})">
+                    <span>
+                        <span class="event-id">${ev.id}</span>
+                        ${ev.name || '(名前なし)'}
+                    </span>
+                    <span style="color:#8b949e; font-size:11px;">(${ev.x}, ${ev.y})</span>
+                </div>
+            `).join('');
+        }
+
+        function selectEvent(id) {
+            selectedEventId = id;
+            render();
+            updateProperties();
+            updateEventList();
+        }
+
+        function focusEvent(id) {
+            const ev = events.find(e => e.id === id);
+            if (ev) {
+                const container = document.getElementById('canvasContainer');
+                container.scrollLeft = ev.x * TILE * zoom - container.clientWidth / 2;
+                container.scrollTop = ev.y * TILE * zoom - container.clientHeight / 2;
+            }
+        }
+
+        function addEvent() {
+            if (!currentMapData) {
+                alert('先にマップを読み込んでください');
+                return;
+            }
+
+            const newId = events.length > 0 ? Math.max(...events.map(e => e.id)) + 1 : 1;
+            events.push({
+                id: newId,
+                name: '新規イベント',
+                x: Math.floor(mapWidth / 2),
+                y: Math.floor(mapHeight / 2),
+                note: '',
+                originalData: null
+            });
+
+            selectEvent(newId);
+            updateStatus(`イベント ${newId} を追加しました`);
+        }
+
+        function deleteEvent(id) {
+            if (!confirm('このイベントを削除しますか？')) return;
+
+            events = events.filter(e => e.id !== id);
+            selectedEventId = null;
+            render();
+            updateProperties();
+            updateEventList();
+            updateStatus(`イベント ${id} を削除しました`);
+        }
+
+        function updateEvent(id, prop, value) {
+            const ev = events.find(e => e.id === id);
+            if (ev) {
+                ev[prop] = value;
+                render();
+                updateEventList();
+            }
+        }
+
+        // ========================================
+        // プロパティパネル
+        // ========================================
+        function updateProperties() {
+            const container = document.getElementById('propContent');
+            const ev = events.find(e => e.id === selectedEventId);
+
+            if (!ev) {
+                container.innerHTML = `
+                    <div class="prop-group">
+                        <p style="color:#8b949e; font-size:12px; text-align:center; padding:30px 0;">
+                            イベントを選択すると<br>ここに詳細が表示されます
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="prop-group">
+                    <label>イベントID</label>
+                    <input type="text" value="${ev.id}" readonly style="background:#161b22; color:#8b949e;">
+                </div>
+                <div class="prop-group">
+                    <label>名前</label>
+                    <input type="text" value="${ev.name || ''}"
+                           onchange="updateEvent(${ev.id}, 'name', this.value)"
+                           placeholder="イベント名">
+                </div>
+                <div class="prop-group">
+                    <label>座標</label>
+                    <div class="prop-row">
+                        <input type="number" value="${ev.x}" min="0" max="${mapWidth - 1}"
+                               onchange="updateEvent(${ev.id}, 'x', parseInt(this.value))"
+                               style="text-align:center;">
+                        <input type="number" value="${ev.y}" min="0" max="${mapHeight - 1}"
+                               onchange="updateEvent(${ev.id}, 'y', parseInt(this.value))"
+                               style="text-align:center;">
+                    </div>
+                </div>
+                <div class="prop-group">
+                    <label>メモ</label>
+                    <textarea rows="3"
+                              onchange="updateEvent(${ev.id}, 'note', this.value)"
+                              placeholder="メモ...">${ev.note || ''}</textarea>
+                </div>
+                <div class="prop-group">
+                    <button class="btn btn-danger btn-full" onclick="deleteEvent(${ev.id})">
+                        🗑️ イベント削除
+                    </button>
+                </div>
+            `;
+        }
+
+        // ========================================
+        // 保存・エクスポート
+        // ========================================
+        function buildMapJSON() {
+            if (!currentMapData) return null;
+
+            // タイルデータ生成
+            const tilesPerLayer = mapWidth * mapHeight;
+            const tileData = [];
+
+            // レイヤー0: 通行判定 (0=通行禁止タイル, 2816=草タイル通行可)
+            // サブタイル値15(全禁止)なら通行禁止、それ以外は通行可能
+            for (let i = 0; i < tilesPerLayer; i++) {
+                const value = passageData[i] || 0;
+                tileData.push(value === 15 ? 0 : 2816);
+            }
+
+            // レイヤー1-5: 空
+            for (let i = 0; i < tilesPerLayer * 5; i++) {
+                tileData.push(0);
+            }
+
+            // イベント配列生成
+            const eventsArray = [null];
+            const sortedEvents = [...events].sort((a, b) => a.id - b.id);
+
+            for (const ev of sortedEvents) {
+                // IDの穴埋め
+                while (eventsArray.length < ev.id) {
+                    eventsArray.push(null);
+                }
+
+                const eventData = ev.originalData
+                    ? JSON.parse(JSON.stringify(ev.originalData))
+                    : createDefaultEvent(ev.id, ev.name, ev.x, ev.y);
+
+                eventData.id = ev.id;
+                eventData.name = ev.name;
+                eventData.x = ev.x;
+                eventData.y = ev.y;
+                eventData.note = ev.note || '';
+
+                eventsArray.push(eventData);
+            }
+
+            // サブタイル通行データ（0-15の値）
+            const subPassage = [...passageData];
+
+            // オーバーレイデータ（BigIntを文字列に変換）
+            const overlay = overlayData.map(v => v.toString());
+
+            return {
+                ...currentMapData,
+                width: mapWidth,
+                height: mapHeight,
+                data: tileData,
+                events: eventsArray,
+                subPassage: subPassage,  // サブタイル通行データ追加
+                overlay: overlay,        // オーバーレイデータ追加（6px単位）
+                note: 'invisible tiles\nparallax map',
+                parallaxShow: true
+            };
+        }
+
+        function createDefaultEvent(id, name, x, y) {
+            return {
+                id, name, x, y, note: '',
+                pages: [{
+                    conditions: {
+                        actorId: 1, actorValid: false,
+                        itemId: 1, itemValid: false,
+                        selfSwitchCh: 'A', selfSwitchValid: false,
+                        switch1Id: 1, switch1Valid: false,
+                        switch2Id: 1, switch2Valid: false,
+                        variableId: 1, variableValid: false, variableValue: 0
+                    },
+                    directionFix: false,
+                    image: { tileId: 0, characterName: '', direction: 2, pattern: 1, characterIndex: 0 },
+                    list: [{ code: 0, indent: 0, parameters: [] }],
+                    moveFrequency: 3,
+                    moveRoute: { list: [{ code: 0, parameters: [] }], repeat: true, skippable: false, wait: false },
+                    moveSpeed: 3,
+                    moveType: 0,
+                    priorityType: 1,
+                    stepAnime: false,
+                    through: false,
+                    trigger: 0,
+                    walkAnime: true
+                }]
+            };
+        }
+
+        function saveMap() {
+            const json = buildMapJSON();
+            if (!json) {
+                alert('先にマップを読み込んでください');
+                return;
+            }
+
+            const fileName = `Map${String(currentMapId).padStart(3, '0')}.json`;
+            const blob = new Blob([JSON.stringify(json)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+
+            URL.revokeObjectURL(url);
+            updateStatus(`${fileName} をダウンロードしました - data フォルダに配置してください`);
+        }
+
+        // 全て保存（3ファイル同時ダウンロード）
+        async function saveAll() {
+            const hasOverlay = overlayData.some(v => v > 0n);
+            if (!hasOverlay) {
+                alert('オーバーレイが設定されていません');
+                return;
+            }
+            if (!parallaxImg.complete || !parallaxImg.naturalWidth) {
+                alert('パララックス画像が読み込まれていません');
+                return;
+            }
+
+            updateStatus('3ファイルを保存中...');
+
+            // 1. Map JSON
+            const json = buildMapJSON();
+            if (json) {
+                const fileName = `Map${String(currentMapId).padStart(3, '0')}.json`;
+                const blob = new Blob([JSON.stringify(json)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            await new Promise(r => setTimeout(r, 300));
+
+            // 2. Overlay PNG
+            const EIGHTH = TILE / 8;
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = parallaxImg.naturalWidth;
+            tempCanvas.height = parallaxImg.naturalHeight;
+
+            for (let y = 0; y < mapHeight; y++) {
+                for (let x = 0; x < mapWidth; x++) {
+                    const idx = y * mapWidth + x;
+                    const val = overlayData[idx] || 0n;
+                    if (val > 0n) {
+                        for (let ey = 0; ey < 8; ey++) {
+                            for (let ex = 0; ex < 8; ex++) {
+                                const bit = BigInt(ey * 8 + ex);
+                                if (val & (1n << bit)) {
+                                    const px = x * TILE + ex * EIGHTH;
+                                    const py = y * TILE + ey * EIGHTH;
+                                    tempCtx.drawImage(parallaxImg, px, py, EIGHTH, EIGHTH, px, py, EIGHTH, EIGHTH);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            tempCanvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentParallaxName}_overlay.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+
+            await new Promise(r => setTimeout(r, 300));
+
+            // 3. Overlay JSON
+            const olData = {
+                version: 2,
+                mapWidth: mapWidth,
+                mapHeight: mapHeight,
+                gridSize: 6,
+                parallaxName: currentParallaxName,
+                overlay: overlayData.map(v => v.toString())
+            };
+            const olJson = JSON.stringify(olData, null, 2);
+            const olBlob = new Blob([olJson], { type: 'application/json' });
+            const olUrl = URL.createObjectURL(olBlob);
+            const olA = document.createElement('a');
+            olA.href = olUrl;
+            olA.download = `${currentParallaxName}_overlay.json`;
+            olA.click();
+            URL.revokeObjectURL(olUrl);
+
+            updateStatus('3ファイルを保存しました！');
+        }
+
+        function exportJSON() {
+            const json = buildMapJSON();
+            if (!json) {
+                alert('先にマップを読み込んでください');
+                return;
+            }
+
+            document.getElementById('exportText').value = JSON.stringify(json, null, 2);
+            document.getElementById('exportModal').classList.add('show');
+        }
+
+        function copyExport() {
+            const text = document.getElementById('exportText').value;
+            navigator.clipboard.writeText(text).then(() => {
+                updateStatus('JSONをクリップボードにコピーしました');
+            });
+        }
+
+        function downloadExport() {
+            saveMap();
+            closeModal('exportModal');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        // ========================================
+        // オーバーレイ画像保存（6px単位対応）
+        // ========================================
+        function saveOverlayImage() {
+            if (!parallaxImg.complete || !parallaxImg.naturalWidth) {
+                alert('パララックス画像が読み込まれていません');
+                return;
+            }
+
+            // オーバーレイとしてマークされた8分割タイルがあるか確認
+            const hasOverlay = overlayData.some(v => v > 0n);
+            if (!hasOverlay) {
+                alert('オーバーレイが設定されていません。\nオーバーレイツールで屋根などを選択してください。');
+                return;
+            }
+
+            // 元画像と同じサイズのキャンバスを作成
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = parallaxImg.naturalWidth;
+            tempCanvas.height = parallaxImg.naturalHeight;
+
+            // 透明で初期化（デフォルトで透明）
+            const EIGHTH = TILE / 8;  // 6px
+
+            // オーバーレイ8分割タイルの部分だけ元画像からコピー
+            for (let y = 0; y < mapHeight; y++) {
+                for (let x = 0; x < mapWidth; x++) {
+                    const idx = y * mapWidth + x;
+                    const val = overlayData[idx] || 0n;
+                    if (val > 0n) {
+                        // 64個の8分割タイルをチェック (8x8)
+                        for (let ey = 0; ey < 8; ey++) {
+                            for (let ex = 0; ex < 8; ex++) {
+                                const bit = BigInt(ey * 8 + ex);
+                                if (val & (1n << bit)) {
+                                    // この8分割タイルをコピー
+                                    const px = x * TILE + ex * EIGHTH;
+                                    const py = y * TILE + ey * EIGHTH;
+                                    tempCtx.drawImage(
+                                        parallaxImg,
+                                        px, py, EIGHTH, EIGHTH,  // ソース
+                                        px, py, EIGHTH, EIGHTH   // デスト
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ダウンロード
+            tempCanvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentParallaxName}_overlay.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                updateStatus(`${currentParallaxName}_overlay.png をダウンロードしました。img/parallaxes/ に配置してください`);
+            }, 'image/png');
+        }
+
+        // オーバーレイデータ保存（JSON形式）
+        function saveOverlayData() {
+            const hasOverlay = overlayData.some(v => v > 0n);
+            if (!hasOverlay) {
+                alert('オーバーレイが設定されていません');
+                return;
+            }
+
+            const data = {
+                version: 2,
+                mapWidth: mapWidth,
+                mapHeight: mapHeight,
+                gridSize: 6,  // 6px単位
+                parallaxName: currentParallaxName,
+                overlay: overlayData.map(v => v.toString())
+            };
+
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentParallaxName}_overlay.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            updateStatus(`${currentParallaxName}_overlay.json を保存しました`);
+        }
+
+        // オーバーレイデータ読み込み
+        function loadOverlayData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+
+                    if (!data.overlay || !Array.isArray(data.overlay)) {
+                        alert('無効なオーバーレイデータです');
+                        return;
+                    }
+
+                    // サイズチェック
+                    if (data.mapWidth !== mapWidth || data.mapHeight !== mapHeight) {
+                        if (!confirm(`マップサイズが異なります。\n読込: ${data.mapWidth}x${data.mapHeight}\n現在: ${mapWidth}x${mapHeight}\n\n続行しますか？`)) {
+                            return;
+                        }
+                    }
+
+                    // データ読み込み
+                    const maxLen = Math.min(data.overlay.length, overlayData.length);
+                    for (let i = 0; i < maxLen; i++) {
+                        const val = data.overlay[i];
+                        overlayData[i] = typeof val === 'string' ? BigInt(val) : BigInt(val || 0);
+                    }
+
+                    render();
+                    updateStatus(`オーバーレイデータを読み込みました (${maxLen} タイル)`);
+                } catch (err) {
+                    alert('読み込みエラー: ' + err.message);
+                }
+            };
+            input.click();
+        }
+
+        // ========================================
+        // ユーティリティ
+        // ========================================
+        function setZoom(value) {
+            zoom = parseFloat(value);
+            resizeCanvas();
+            render();
+        }
+
+        function updateStatus(msg) {
+            document.getElementById('status').textContent = msg;
+        }
+
+        // ========================================
+        // ドラッグ&ドロップ
+        // ========================================
+        const dropZone = document.getElementById('dropZone');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+
+            const items = e.dataTransfer.items;
+            for (const item of items) {
+                if (item.kind === 'file') {
+                    const handle = await item.getAsFileSystemHandle();
+                    if (handle.kind === 'directory') {
+                        await loadProjectFromHandle(handle);
+                        return;
+                    }
+                }
+            }
+            alert('プロジェクトフォルダをドロップしてください');
+        });
+
+        // 初期化完了
+        console.log('Parallax Editor loaded');
+    </script>
+</body>
+</html>

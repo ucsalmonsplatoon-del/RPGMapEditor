@@ -3,8 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPGマップエディタ - タイル配置ツール</title>
+    <title>RPG Maker MZ ツール選択</title>
     <style>
+        :root {
+            --paper: #f7f2e8;
+            --sky: #e7f6f2;
+            --ink: #1f2a37;
+            --muted: #4b5563;
+            --card: rgba(255, 255, 255, 0.86);
+            --card-border: rgba(31, 42, 55, 0.12);
+            --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+            --map-accent: #f97316;
+            --parallax-accent: #0ea5a4;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,1247 +24,226 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: "Zen Kaku Gothic New", "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+            color: var(--ink);
             min-height: 100vh;
-            padding: 20px;
+            background:
+                radial-gradient(900px 500px at 0% 0%, rgba(249, 115, 22, 0.12), transparent 60%),
+                radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 164, 0.12), transparent 60%),
+                linear-gradient(160deg, var(--paper) 0%, var(--sky) 55%, #fef6e4 100%);
         }
 
-        .header {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        body::before {
+            content: "";
+            position: fixed;
+            inset: -30% -10% auto auto;
+            width: 380px;
+            height: 380px;
+            background: radial-gradient(circle, rgba(14, 165, 164, 0.18), transparent 65%);
+            transform: rotate(-8deg);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .wrap {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 48px 24px 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero {
+            margin-bottom: 28px;
+        }
+
+        .eyebrow {
+            font-size: 12px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
         }
 
         h1 {
-            color: #333;
-            font-size: 28px;
-            margin-bottom: 15px;
+            font-family: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+            font-size: 32px;
+            margin-top: 12px;
         }
 
-        .toolbar {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
+        .lead {
+            margin-top: 10px;
+            color: var(--muted);
+            line-height: 1.7;
         }
 
-        .btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 24px;
         }
 
-        .btn:hover {
-            background: #5a67d8;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn.success {
-            background: #48bb78;
-        }
-
-        .btn.success:hover {
-            background: #38a169;
-        }
-
-        .btn.danger {
-            background: #f56565;
-        }
-
-        .btn.danger:hover {
-            background: #e53e3e;
-        }
-
-        .btn.warning {
-            background: #ed8936;
-        }
-
-        .btn.warning:hover {
-            background: #dd6b20;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .main-container {
-            display: flex;
-            gap: 20px;
-            height: calc(100vh - 200px);
-        }
-
-        .panel {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        .card {
+            text-decoration: none;
+            color: inherit;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 22px 24px;
+            box-shadow: var(--shadow);
             display: flex;
             flex-direction: column;
-        }
-
-        .left-panel {
-            width: 350px;
-            min-width: 300px;
-            resize: horizontal;
-            overflow: auto;
-        }
-
-        .right-panel {
-            flex: 1;
-            min-width: 600px;
-        }
-
-        .panel-header {
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-
-        .canvas-container {
-            position: relative;
-            border: 2px solid #cbd5e0;
-            border-radius: 8px;
-            overflow: auto;
-            flex: 1;
-            background: #f7fafc;
-            transition: all 0.3s;
-        }
-
-        .canvas-container.dragover {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .drop-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(102, 126, 234, 0.9);
-            color: white;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            font-weight: bold;
-            z-index: 1000;
-            pointer-events: none;
-        }
-
-        .canvas-container.dragover .drop-overlay {
-            display: flex;
-        }
-
-        #tilesetCanvas, #mapCanvas {
-            display: block;
-            image-rendering: pixelated;
-            image-rendering: -moz-crisp-edges;
-            image-rendering: crisp-edges;
-            transform-origin: top left;
-        }
-
-        #tilesetSelection {
-            position: absolute;
-            border: 3px solid #667eea;
-            background: rgba(102, 126, 234, 0.3);
-            pointer-events: none;
-            display: none;
-            z-index: 10;
-        }
-
-        .map-container {
-            position: relative;
-            overflow: auto;
-            flex: 1;
-        }
-
-        #mapCanvas {
-            background: white;
-            transform-origin: top left;
-        }
-
-        .zoom-controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 100;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 6px;
-            padding: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .zoom-btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            width: 30px;
-            height: 30px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 0 2px;
-            font-size: 18px;
-        }
-
-        .zoom-btn:hover {
-            background: #5a67d8;
-        }
-
-        .zoom-level {
-            display: inline-block;
-            margin: 0 10px;
-            font-size: 14px;
-            color: #4a5568;
-            min-width: 50px;
-            text-align: center;
-        }
-
-        .object-wrapper {
-            position: absolute;
-            border: 2px dashed #667eea;
-            cursor: move;
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-        .object-wrapper:hover {
-            border-color: #f56565;
-            background: rgba(245, 101, 101, 0.1);
-        }
-
-        .object-wrapper.selected {
-            border: 2px solid #f56565;
-            background: rgba(245, 101, 101, 0.2);
-        }
-
-        .resize-handle {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: #667eea;
-            border: 2px solid white;
-            display: none;
-        }
-
-        .object-wrapper.selected .resize-handle {
-            display: block;
-        }
-
-        .resize-handle.nw { top: -5px; left: -5px; cursor: nw-resize; }
-        .resize-handle.ne { top: -5px; right: -5px; cursor: ne-resize; }
-        .resize-handle.sw { bottom: -5px; left: -5px; cursor: sw-resize; }
-        .resize-handle.se { bottom: -5px; right: -5px; cursor: se-resize; }
-
-        .controls {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .control-group {
-            margin-bottom: 10px;
-        }
-
-        .control-group label {
-            display: block;
-            color: #4a5568;
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-
-        .info-box {
-            background: #edf2f7;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 14px;
-            color: #4a5568;
-        }
-
-        .object-list {
-            max-height: 150px;
-            overflow-y: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 10px;
-            background: #f7fafc;
-        }
-
-        .canvas-container.panning {
-            cursor: grab !important;
-        }
-
-        .canvas-container.panning * {
-            cursor: grab !important;
-        }
-
-        .object-item {
-            padding: 5px 10px;
-            margin-bottom: 5px;
-            background: white;
-            border-radius: 4px;
-            cursor: pointer;
-            display: flex;
             justify-content: space-between;
+            gap: 18px;
+            min-height: 240px;
+            position: relative;
+            overflow: hidden;
+            animation: rise 0.6s ease both;
+        }
+
+        .card::after {
+            content: "";
+            position: absolute;
+            inset: -35% -15% auto auto;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(31, 42, 55, 0.08), transparent 70%);
+            pointer-events: none;
+        }
+
+        .card--map {
+            animation-delay: 0.05s;
+        }
+
+        .card--parallax {
+            animation-delay: 0.16s;
+        }
+
+        .badge {
+            display: inline-flex;
             align-items: center;
-        }
-
-        .object-item:hover {
-            background: #edf2f7;
-        }
-
-        .object-item.selected {
-            background: #667eea;
-            color: white;
-        }
-
-        .delete-btn {
-            background: #f56565;
-            color: white;
-            border: none;
-            padding: 2px 8px;
-            border-radius: 4px;
-            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 999px;
             font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
         }
 
-        .mode-selector {
+        .badge.map {
+            background: rgba(249, 115, 22, 0.14);
+            color: #9a3412;
+        }
+
+        .badge.parallax {
+            background: rgba(14, 165, 164, 0.14);
+            color: #0f766e;
+        }
+
+        .card__title {
+            font-size: 22px;
+            margin-top: 14px;
+        }
+
+        .card__desc {
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .card__meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .card__cta {
             display: flex;
-            gap: 10px;
-            margin: 15px 0;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
         }
 
-        .mode-btn {
-            flex: 1;
-            padding: 8px;
-            border: 2px solid #cbd5e0;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
+        .card__cta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .mode-btn.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 26px 60px rgba(15, 23, 42, 0.18);
+        }
+
+        .card:focus-visible {
+            outline: 3px solid rgba(14, 165, 164, 0.35);
+            outline-offset: 4px;
+        }
+
+        .foot {
+            margin-top: 24px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .card {
+                animation: none;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🗺️ RPGマップエディタ</h1>
-        <div class="toolbar">
-            <label class="btn">
-                📁 タイルセット読込
-                <input type="file" id="tilesetInput" accept="image/*">
-            </label>
-            <label class="btn">
-                🗺️ マップ画像読込
-                <input type="file" id="mapInput" accept="image/*">
-            </label>
-            <button class="btn success" id="saveProjectBtn">💾 プロジェクト保存</button>
-            <label class="btn success">
-                📂 プロジェクト読込
-                <input type="file" id="loadProjectBtn" accept=".json">
-            </label>
-            <button class="btn warning" id="exportPngBtn">🖼️ PNG出力</button>
-            <button class="btn danger" id="clearAllBtn">🗑️ 全クリア</button>
-        </div>
-    </div>
+    <main class="wrap">
+        <header class="hero">
+            <div class="eyebrow">RPG Maker MZ Tools</div>
+            <h1>どのエディタを開きますか</h1>
+            <p class="lead">GitHub Pages用の入口ページです。用途にあわせて2つのツールから選択できます。</p>
+        </header>
 
-    <div class="main-container">
-        <div class="panel left-panel">
-            <div class="panel-header">タイルセット</div>
-            <div class="canvas-container" id="tilesetContainer">
-                <canvas id="tilesetCanvas"></canvas>
-                <div id="tilesetSelection"></div>
-                <div class="drop-overlay">📁 画像をドロップ</div>
-                <div class="zoom-controls">
-                    <button class="zoom-btn" id="tilesetZoomOutBtn">−</button>
-                    <span class="zoom-level" id="tilesetZoomLevel">100%</span>
-                    <button class="zoom-btn" id="tilesetZoomInBtn">+</button>
-                    <button class="zoom-btn" id="tilesetZoomResetBtn">⟲</button>
+        <section class="grid" aria-label="エディタ選択">
+            <a class="card card--map" href="rpg_map_editor.html">
+                <div>
+                    <div class="badge map">Tile Map</div>
+                    <div class="card__title">RPGマップエディタ</div>
+                    <p class="card__desc">タイルセットの切り出しと配置に特化。マップ画像への重ね合わせやPNG出力まで一通り対応します。</p>
+                    <div class="card__meta">rpg_map_editor.html</div>
                 </div>
-            </div>
-            <div class="controls">
-                <div class="info-box" id="selectionInfo">
-                    選択: なし
+                <div class="card__cta">
+                    <span>開く</span>
+                    <span>-></span>
                 </div>
-            </div>
-        </div>
+            </a>
 
-        <div class="panel right-panel">
-            <div class="panel-header">マップ</div>
-            <div class="mode-selector">
-                <button class="mode-btn active" data-mode="place">配置モード</button>
-                <button class="mode-btn" data-mode="edit">編集モード</button>
-            </div>
-            <div class="canvas-container map-container" id="mapContainer">
-                <canvas id="mapCanvas"></canvas>
-                <div class="drop-overlay">🗺️ マップ画像をドロップ</div>
-                <div class="zoom-controls">
-                    <button class="zoom-btn" id="zoomOutBtn">−</button>
-                    <span class="zoom-level" id="zoomLevel">100%</span>
-                    <button class="zoom-btn" id="zoomInBtn">+</button>
-                    <button class="zoom-btn" id="zoomResetBtn">⟲</button>
+            <a class="card card--parallax" href="parallax_editor.html">
+                <div>
+                    <div class="badge parallax">Parallax</div>
+                    <div class="card__title">パララックスエディタ</div>
+                    <p class="card__desc">重ね合わせレイヤーの調整やプレビュー向け。大型マップの背景作成に向いています。</p>
+                    <div class="card__meta">parallax_editor.html</div>
                 </div>
-            </div>
-            <div class="controls">
-                <div class="control-group">
-                    <label>配置オブジェクト一覧</label>
-                    <div class="object-list" id="objectList"></div>
+                <div class="card__cta">
+                    <span>開く</span>
+                    <span>-></span>
                 </div>
-                <div class="info-box">
-                    オブジェクト数: <span id="objectCount">0</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // グローバル変数
-        let tilesetImage = null;
-        let mapImage = null;
-        let tilesetSelection = null;
-        let isSelectingTile = false;
-        let selectStartX, selectStartY;
-        let placedObjects = [];
-        let selectedObject = null;
-        let currentMode = 'place';
-        let objectIdCounter = 1;
-
-        // マウス操作用
-        let isDragging = false;
-        let isResizing = false;
-        let dragStartX, dragStartY;
-        let resizeHandle = null;
-
-        // パン（スクロール）用
-        let isPanningMap = false;
-        let isPanningTileset = false;
-        let panStartX, panStartY;
-        let panStartScrollLeft, panStartScrollTop;
-
-        // ズーム関連
-        let mapZoomLevel = 1;
-        let tilesetZoomLevel = 1;
-        const MIN_ZOOM = 0.25;
-        const MAX_ZOOM = 4;
-        const ZOOM_STEP = 0.1;
-
-        // 履歴管理
-        let history = [];
-        let historyIndex = -1;
-        const MAX_HISTORY = 50;
-
-        // Canvas要素
-        const tilesetCanvas = document.getElementById('tilesetCanvas');
-        const tilesetCtx = tilesetCanvas.getContext('2d');
-        const mapCanvas = document.getElementById('mapCanvas');
-        const mapCtx = mapCanvas.getContext('2d');
-        const mapContainer = document.getElementById('mapContainer');
-        const tilesetContainer = document.getElementById('tilesetContainer');
-        const tilesetSelectionDiv = document.getElementById('tilesetSelection');
-
-        // 画像読み込み処理
-        function loadTilesetImage(file) {
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    tilesetImage = new Image();
-                    tilesetImage.onload = () => {
-                        tilesetCanvas.width = tilesetImage.width;
-                        tilesetCanvas.height = tilesetImage.height;
-                        tilesetCtx.drawImage(tilesetImage, 0, 0);
-                    };
-                    tilesetImage.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function loadMapImage(file) {
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    mapImage = new Image();
-                    mapImage.onload = () => {
-                        mapCanvas.width = mapImage.width;
-                        mapCanvas.height = mapImage.height;
-                        redrawMap();
-                    };
-                    mapImage.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // ファイル選択での読み込み
-        document.getElementById('tilesetInput').addEventListener('change', (e) => {
-            loadTilesetImage(e.target.files[0]);
-        });
-
-        document.getElementById('mapInput').addEventListener('change', (e) => {
-            loadMapImage(e.target.files[0]);
-        });
-
-        // ドラッグ&ドロップ - タイルセット
-        tilesetContainer.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            tilesetContainer.classList.add('dragover');
-        });
-
-        tilesetContainer.addEventListener('dragleave', (e) => {
-            if (e.currentTarget === tilesetContainer && !tilesetContainer.contains(e.relatedTarget)) {
-                tilesetContainer.classList.remove('dragover');
-            }
-        });
-
-        tilesetContainer.addEventListener('drop', (e) => {
-            e.preventDefault();
-            tilesetContainer.classList.remove('dragover');
-
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                loadTilesetImage(files[0]);
-            }
-        });
-
-        // ドラッグ&ドロップ - マップ
-        mapContainer.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            mapContainer.classList.add('dragover');
-        });
-
-        mapContainer.addEventListener('dragleave', (e) => {
-            if (e.currentTarget === mapContainer && !mapContainer.contains(e.relatedTarget)) {
-                mapContainer.classList.remove('dragover');
-            }
-        });
-
-        mapContainer.addEventListener('drop', (e) => {
-            e.preventDefault();
-            mapContainer.classList.remove('dragover');
-
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                loadMapImage(files[0]);
-            }
-        });
-
-        // ページ全体のドラッグオーバーを防ぐ
-        document.addEventListener('dragover', (e) => {
-            e.preventDefault();
-        });
-
-        document.addEventListener('drop', (e) => {
-            e.preventDefault();
-        });
-
-        // タイルセット選択
-        tilesetCanvas.addEventListener('mousedown', (e) => {
-            if (!tilesetImage) return;
-
-            const rect = tilesetCanvas.getBoundingClientRect();
-            selectStartX = (e.clientX - rect.left) / tilesetZoomLevel;
-            selectStartY = (e.clientY - rect.top) / tilesetZoomLevel;
-            isSelectingTile = true;
-
-            tilesetSelectionDiv.style.display = 'block';
-            tilesetSelectionDiv.style.left = (selectStartX * tilesetZoomLevel) + 'px';
-            tilesetSelectionDiv.style.top = (selectStartY * tilesetZoomLevel) + 'px';
-            tilesetSelectionDiv.style.width = '0px';
-            tilesetSelectionDiv.style.height = '0px';
-        });
-
-        tilesetCanvas.addEventListener('mousemove', (e) => {
-            if (!isSelectingTile) return;
-
-            const rect = tilesetCanvas.getBoundingClientRect();
-            const currentX = (e.clientX - rect.left) / tilesetZoomLevel;
-            const currentY = (e.clientY - rect.top) / tilesetZoomLevel;
-
-            const left = Math.min(selectStartX, currentX);
-            const top = Math.min(selectStartY, currentY);
-            const width = Math.abs(currentX - selectStartX);
-            const height = Math.abs(currentY - selectStartY);
-
-            tilesetSelectionDiv.style.left = (left * tilesetZoomLevel) + 'px';
-            tilesetSelectionDiv.style.top = (top * tilesetZoomLevel) + 'px';
-            tilesetSelectionDiv.style.width = (width * tilesetZoomLevel) + 'px';
-            tilesetSelectionDiv.style.height = (height * tilesetZoomLevel) + 'px';
-        });
-
-        tilesetCanvas.addEventListener('mouseup', (e) => {
-            if (!isSelectingTile) return;
-            isSelectingTile = false;
-
-            const rect = tilesetCanvas.getBoundingClientRect();
-            const endX = (e.clientX - rect.left) / tilesetZoomLevel;
-            const endY = (e.clientY - rect.top) / tilesetZoomLevel;
-
-            const left = Math.min(selectStartX, endX);
-            const top = Math.min(selectStartY, endY);
-            const width = Math.abs(endX - selectStartX);
-            const height = Math.abs(endY - selectStartY);
-
-            if (width > 5 && height > 5) {
-                tilesetSelection = { x: left, y: top, width, height };
-                document.getElementById('selectionInfo').textContent =
-                    `選択: ${Math.round(width)}×${Math.round(height)}px`;
-            }
-        });
-
-        // モード切り替え
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentMode = btn.dataset.mode;
-            });
-        });
-
-        // 履歴を保存
-        function saveHistory() {
-            // 現在の位置より先の履歴を削除
-            history = history.slice(0, historyIndex + 1);
-
-            // 新しい状態を保存
-            const state = {
-                objects: placedObjects.map(obj => ({...obj})),
-                objectIdCounter: objectIdCounter
-            };
-            history.push(JSON.parse(JSON.stringify(state)));
-
-            // 履歴の最大数を超えたら古いものを削除
-            if (history.length > MAX_HISTORY) {
-                history.shift();
-            } else {
-                historyIndex++;
-            }
-        }
-
-        // 履歴から復元
-        function restoreHistory(index) {
-            if (index < 0 || index >= history.length) return;
-
-            const state = history[index];
-            placedObjects = state.objects.map(obj => ({...obj}));
-
-            // objectIdCounterを正しく復元（保存されていない場合は最大ID+1を使用）
-            if (state.objectIdCounter) {
-                objectIdCounter = state.objectIdCounter;
-            } else if (placedObjects.length > 0) {
-                const maxId = Math.max(...placedObjects.map(obj => obj.id));
-                objectIdCounter = maxId + 1;
-            } else {
-                objectIdCounter = 1;
-            }
-
-            // DOM要素を再作成
-            document.querySelectorAll('.object-wrapper').forEach(w => w.remove());
-            placedObjects.forEach(obj => createObjectElement(obj));
-
-            redrawMap();
-            updateObjectList();
-        }
-
-        // マップクリックで配置
-        mapCanvas.addEventListener('click', (e) => {
-            if (currentMode !== 'place' || !tilesetSelection || !tilesetImage) return;
-
-            const rect = mapCanvas.getBoundingClientRect();
-            // ズームレベルを考慮した座標計算
-            const x = (e.clientX - rect.left) / mapZoomLevel;
-            const y = (e.clientY - rect.top) / mapZoomLevel;
-
-            // 選択範囲の画像データを取得
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = tilesetSelection.width;
-            tempCanvas.height = tilesetSelection.height;
-            const tempCtx = tempCanvas.getContext('2d');
-
-            tempCtx.drawImage(
-                tilesetImage,
-                tilesetSelection.x, tilesetSelection.y,
-                tilesetSelection.width, tilesetSelection.height,
-                0, 0,
-                tilesetSelection.width, tilesetSelection.height
-            );
-
-            // オブジェクトを作成
-            const newObject = {
-                id: objectIdCounter++,
-                x: x - tilesetSelection.width / 2,
-                y: y - tilesetSelection.height / 2,
-                width: tilesetSelection.width,
-                height: tilesetSelection.height,
-                imageData: tempCanvas.toDataURL(),
-                sourceSelection: {...tilesetSelection}
-            };
-
-            saveHistory();
-            placedObjects.push(newObject);
-            createObjectElement(newObject);
-            redrawMap();
-            updateObjectList();
-        });
-
-        // オブジェクト要素を作成
-        function createObjectElement(obj) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'object-wrapper';
-            wrapper.dataset.id = obj.id;
-            wrapper.style.left = (obj.x * mapZoomLevel) + 'px';
-            wrapper.style.top = (obj.y * mapZoomLevel) + 'px';
-            wrapper.style.width = (obj.width * mapZoomLevel) + 'px';
-            wrapper.style.height = (obj.height * mapZoomLevel) + 'px';
-
-            // リサイズハンドル追加
-            ['nw', 'ne', 'sw', 'se'].forEach(pos => {
-                const handle = document.createElement('div');
-                handle.className = `resize-handle ${pos}`;
-                handle.dataset.position = pos;
-                wrapper.appendChild(handle);
-            });
-
-            // オブジェクト画像
-            const img = document.createElement('img');
-            img.src = obj.imageData;
-            img.style.width = '100%';
-            img.style.height = '100%';
-            img.style.pointerEvents = 'none';
-            img.style.imageRendering = 'pixelated';
-            wrapper.appendChild(img);
-
-            mapContainer.appendChild(wrapper);
-
-            // イベントリスナー
-            wrapper.addEventListener('mousedown', handleObjectMouseDown);
-        }
-
-        // オブジェクトのマウスダウン処理
-        function handleObjectMouseDown(e) {
-            if (currentMode !== 'edit') return;
-
-            const wrapper = e.currentTarget;
-            const objId = parseInt(wrapper.dataset.id);
-            selectedObject = placedObjects.find(obj => obj.id === objId);
-
-            // 選択状態更新
-            document.querySelectorAll('.object-wrapper').forEach(w => w.classList.remove('selected'));
-            wrapper.classList.add('selected');
-
-            // リサイズハンドルクリックチェック
-            if (e.target.classList.contains('resize-handle')) {
-                isResizing = true;
-                resizeHandle = e.target.dataset.position;
-            } else {
-                isDragging = true;
-            }
-
-            dragStartX = e.clientX;
-            dragStartY = e.clientY;
-
-            e.preventDefault();
-        }
-
-        // マウス移動処理（オブジェクト用）
-        document.addEventListener('mousemove', (e) => {
-            // パン中は他の処理をしない
-            if (isPanningMap || isPanningTileset) {
-                if (isPanningMap) {
-                    const deltaX = e.clientX - panStartX;
-                    const deltaY = e.clientY - panStartY;
-                    mapContainer.scrollLeft = panStartScrollLeft - deltaX;
-                    mapContainer.scrollTop = panStartScrollTop - deltaY;
-                }
-                if (isPanningTileset) {
-                    const deltaX = e.clientX - panStartX;
-                    const deltaY = e.clientY - panStartY;
-                    tilesetContainer.scrollLeft = panStartScrollLeft - deltaX;
-                    tilesetContainer.scrollTop = panStartScrollTop - deltaY;
-                }
-                return;
-            }
-
-            if (!selectedObject) return;
-
-            const deltaX = e.clientX - dragStartX;
-            const deltaY = e.clientY - dragStartY;
-
-            if (isDragging) {
-                selectedObject.x += deltaX / mapZoomLevel;
-                selectedObject.y += deltaY / mapZoomLevel;
-
-                const wrapper = document.querySelector(`.object-wrapper[data-id="${selectedObject.id}"]`);
-                wrapper.style.left = (selectedObject.x * mapZoomLevel) + 'px';
-                wrapper.style.top = (selectedObject.y * mapZoomLevel) + 'px';
-
-                dragStartX = e.clientX;
-                dragStartY = e.clientY;
-            } else if (isResizing) {
-                let newWidth = selectedObject.width;
-                let newHeight = selectedObject.height;
-                let newX = selectedObject.x;
-                let newY = selectedObject.y;
-
-                const scaledDeltaX = deltaX / mapZoomLevel;
-                const scaledDeltaY = deltaY / mapZoomLevel;
-
-                switch(resizeHandle) {
-                    case 'se':
-                        newWidth += scaledDeltaX;
-                        newHeight += scaledDeltaY;
-                        break;
-                    case 'sw':
-                        newWidth -= scaledDeltaX;
-                        newHeight += scaledDeltaY;
-                        newX += scaledDeltaX;
-                        break;
-                    case 'ne':
-                        newWidth += scaledDeltaX;
-                        newHeight -= scaledDeltaY;
-                        newY += scaledDeltaY;
-                        break;
-                    case 'nw':
-                        newWidth -= scaledDeltaX;
-                        newHeight -= scaledDeltaY;
-                        newX += scaledDeltaX;
-                        newY += scaledDeltaY;
-                        break;
-                }
-
-                if (newWidth > 20 && newHeight > 20) {
-                    selectedObject.width = newWidth;
-                    selectedObject.height = newHeight;
-                    selectedObject.x = newX;
-                    selectedObject.y = newY;
-
-                    const wrapper = document.querySelector(`.object-wrapper[data-id="${selectedObject.id}"]`);
-                    wrapper.style.left = (newX * mapZoomLevel) + 'px';
-                    wrapper.style.top = (newY * mapZoomLevel) + 'px';
-                    wrapper.style.width = (newWidth * mapZoomLevel) + 'px';
-                    wrapper.style.height = (newHeight * mapZoomLevel) + 'px';
-
-                    dragStartX = e.clientX;
-                    dragStartY = e.clientY;
-                }
-            }
-        });
-
-        // マウスアップ処理
-        document.addEventListener('mouseup', () => {
-            if (isDragging || isResizing) {
-                saveHistory();
-                redrawMap();
-            }
-            isDragging = false;
-            isResizing = false;
-            resizeHandle = null;
-        });
-
-        // ズーム機能
-        function updateMapZoom(newZoom) {
-            mapZoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newZoom));
-            mapCanvas.style.transform = `scale(${mapZoomLevel})`;
-            document.getElementById('zoomLevel').textContent = Math.round(mapZoomLevel * 100) + '%';
-
-            // オブジェクト要素の位置とサイズを更新
-            document.querySelectorAll('.object-wrapper').forEach(wrapper => {
-                const objId = parseInt(wrapper.dataset.id);
-                const obj = placedObjects.find(o => o.id === objId);
-                if (obj) {
-                    wrapper.style.left = (obj.x * mapZoomLevel) + 'px';
-                    wrapper.style.top = (obj.y * mapZoomLevel) + 'px';
-                    wrapper.style.width = (obj.width * mapZoomLevel) + 'px';
-                    wrapper.style.height = (obj.height * mapZoomLevel) + 'px';
-                }
-            });
-        }
-
-        function updateTilesetZoom(newZoom) {
-            tilesetZoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newZoom));
-            tilesetCanvas.style.transform = `scale(${tilesetZoomLevel})`;
-            document.getElementById('tilesetZoomLevel').textContent = Math.round(tilesetZoomLevel * 100) + '%';
-
-            // 選択範囲の表示を更新
-            if (tilesetSelection) {
-                tilesetSelectionDiv.style.left = (tilesetSelection.x * tilesetZoomLevel) + 'px';
-                tilesetSelectionDiv.style.top = (tilesetSelection.y * tilesetZoomLevel) + 'px';
-                tilesetSelectionDiv.style.width = (tilesetSelection.width * tilesetZoomLevel) + 'px';
-                tilesetSelectionDiv.style.height = (tilesetSelection.height * tilesetZoomLevel) + 'px';
-            }
-        }
-
-        // マウスホイールでズーム - マップ
-        mapContainer.addEventListener('wheel', (e) => {
-            if (!e.ctrlKey && !e.shiftKey) {
-                e.preventDefault();
-                const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-                updateMapZoom(mapZoomLevel + delta);
-            }
-        });
-
-        // マウスホイールでズーム - タイルセット
-        tilesetContainer.addEventListener('wheel', (e) => {
-            if (!e.ctrlKey && !e.shiftKey) {
-                e.preventDefault();
-                const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-                updateTilesetZoom(tilesetZoomLevel + delta);
-            }
-        });
-
-        // パン機能 - マップ
-        mapContainer.addEventListener('mousedown', (e) => {
-            if (e.button === 1) { // 中ボタン
-                e.preventDefault();
-                isPanningMap = true;
-                panStartX = e.clientX;
-                panStartY = e.clientY;
-                panStartScrollLeft = mapContainer.scrollLeft;
-                panStartScrollTop = mapContainer.scrollTop;
-                mapContainer.classList.add('panning');
-                mapContainer.style.cursor = 'grabbing';
-            }
-        });
-
-        // パン機能 - タイルセット
-        tilesetContainer.addEventListener('mousedown', (e) => {
-            if (e.button === 1) { // 中ボタン
-                e.preventDefault();
-                isPanningTileset = true;
-                panStartX = e.clientX;
-                panStartY = e.clientY;
-                panStartScrollLeft = tilesetContainer.scrollLeft;
-                panStartScrollTop = tilesetContainer.scrollTop;
-                tilesetContainer.classList.add('panning');
-                tilesetContainer.style.cursor = 'grabbing';
-            }
-        });
-
-
-        // パン終了処理
-        document.addEventListener('mouseup', (e) => {
-            if (e.button === 1) {
-                if (isPanningMap) {
-                    isPanningMap = false;
-                    mapContainer.classList.remove('panning');
-                    mapContainer.style.cursor = '';
-                }
-                if (isPanningTileset) {
-                    isPanningTileset = false;
-                    tilesetContainer.classList.remove('panning');
-                    tilesetContainer.style.cursor = '';
-                }
-            }
-        });
-
-        // 中クリックのデフォルト動作を防ぐ
-        document.addEventListener('auxclick', (e) => {
-            if (e.button === 1) {
-                e.preventDefault();
-            }
-        });
-
-        // ズームボタン - マップ
-        document.getElementById('zoomInBtn').addEventListener('click', () => {
-            updateMapZoom(mapZoomLevel + ZOOM_STEP);
-        });
-
-        document.getElementById('zoomOutBtn').addEventListener('click', () => {
-            updateMapZoom(mapZoomLevel - ZOOM_STEP);
-        });
-
-        document.getElementById('zoomResetBtn').addEventListener('click', () => {
-            updateMapZoom(1);
-        });
-
-        // ズームボタン - タイルセット
-        document.getElementById('tilesetZoomInBtn').addEventListener('click', () => {
-            updateTilesetZoom(tilesetZoomLevel + ZOOM_STEP);
-        });
-
-        document.getElementById('tilesetZoomOutBtn').addEventListener('click', () => {
-            updateTilesetZoom(tilesetZoomLevel - ZOOM_STEP);
-        });
-
-        document.getElementById('tilesetZoomResetBtn').addEventListener('click', () => {
-            updateTilesetZoom(1);
-        });
-
-        // キーボードショートカット
-        document.addEventListener('keydown', (e) => {
-            // Delete - オブジェクト削除
-            if (e.key === 'Delete' && selectedObject) {
-                saveHistory();
-                placedObjects = placedObjects.filter(obj => obj.id !== selectedObject.id);
-                const wrapper = document.querySelector(`.object-wrapper[data-id="${selectedObject.id}"]`);
-                wrapper.remove();
-                selectedObject = null;
-                redrawMap();
-                updateObjectList();
-            }
-
-            // Ctrl+Z - 元に戻す
-            if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
-                e.preventDefault();
-                if (historyIndex > 0) {
-                    historyIndex--;
-                    restoreHistory(historyIndex);
-                }
-            }
-
-            // Ctrl+Y または Ctrl+Shift+Z - やり直す
-            if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'Z')) {
-                e.preventDefault();
-                if (historyIndex < history.length - 1) {
-                    historyIndex++;
-                    restoreHistory(historyIndex);
-                }
-            }
-
-            // Ctrl+Plus - ズームイン（アクティブなエリアに応じて）
-            if (e.ctrlKey && (e.key === '+' || e.key === '=')) {
-                e.preventDefault();
-                // マウス位置でどちらのパネルか判定
-                const mouseTarget = document.elementFromPoint(e.clientX || 0, e.clientY || 0);
-                if (mouseTarget && mouseTarget.closest('#tilesetContainer')) {
-                    updateTilesetZoom(tilesetZoomLevel + ZOOM_STEP);
-                } else {
-                    updateMapZoom(mapZoomLevel + ZOOM_STEP);
-                }
-            }
-
-            // Ctrl+Minus - ズームアウト（アクティブなエリアに応じて）
-            if (e.ctrlKey && e.key === '-') {
-                e.preventDefault();
-                const mouseTarget = document.elementFromPoint(e.clientX || 0, e.clientY || 0);
-                if (mouseTarget && mouseTarget.closest('#tilesetContainer')) {
-                    updateTilesetZoom(tilesetZoomLevel - ZOOM_STEP);
-                } else {
-                    updateMapZoom(mapZoomLevel - ZOOM_STEP);
-                }
-            }
-
-            // Ctrl+0 - ズームリセット（アクティブなエリアに応じて）
-            if (e.ctrlKey && e.key === '0') {
-                e.preventDefault();
-                const mouseTarget = document.elementFromPoint(e.clientX || 0, e.clientY || 0);
-                if (mouseTarget && mouseTarget.closest('#tilesetContainer')) {
-                    updateTilesetZoom(1);
-                } else {
-                    updateMapZoom(1);
-                }
-            }
-        });
-
-        // マップ再描画
-        function redrawMap() {
-            if (mapImage) {
-                mapCtx.clearRect(0, 0, mapCanvas.width, mapCanvas.height);
-                mapCtx.drawImage(mapImage, 0, 0);
-            } else {
-                mapCtx.fillStyle = 'white';
-                mapCtx.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
-            }
-
-            // オブジェクト描画
-            placedObjects.forEach(obj => {
-                const img = new Image();
-                img.onload = () => {
-                    mapCtx.drawImage(img, obj.x, obj.y, obj.width, obj.height);
-                };
-                img.src = obj.imageData;
-            });
-        }
-
-        // オブジェクトリスト更新
-        function updateObjectList() {
-            const list = document.getElementById('objectList');
-            list.innerHTML = '';
-
-            placedObjects.forEach((obj, index) => {
-                const item = document.createElement('div');
-                item.className = 'object-item';
-                item.innerHTML = `
-                    <span>オブジェクト ${obj.id}</span>
-                    <button class="delete-btn" data-id="${obj.id}">削除</button>
-                `;
-                list.appendChild(item);
-
-                item.querySelector('.delete-btn').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    saveHistory();
-                    placedObjects = placedObjects.filter(o => o.id !== obj.id);
-                    const wrapper = document.querySelector(`.object-wrapper[data-id="${obj.id}"]`);
-                    if (wrapper) wrapper.remove();
-                    redrawMap();
-                    updateObjectList();
-                });
-            });
-
-            document.getElementById('objectCount').textContent = placedObjects.length;
-        }
-
-        // プロジェクト保存
-        document.getElementById('saveProjectBtn').addEventListener('click', () => {
-            const projectData = {
-                objects: placedObjects,
-                objectIdCounter: objectIdCounter,
-                mapImageData: mapImage ? mapCanvas.toDataURL() : null,
-                tilesetImageData: tilesetImage ? tilesetCanvas.toDataURL() : null,
-                canvasSize: {
-                    width: mapCanvas.width,
-                    height: mapCanvas.height
-                }
-            };
-
-            const dataStr = JSON.stringify(projectData, null, 2);
-            const blob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.download = 'map_project.json';
-            link.href = url;
-            link.click();
-        });
-
-        // プロジェクト読み込み
-        document.getElementById('loadProjectBtn').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const projectData = JSON.parse(e.target.result);
-
-                    // マップ画像復元
-                    if (projectData.mapImageData) {
-                        mapImage = new Image();
-                        mapImage.onload = () => {
-                            mapCanvas.width = projectData.canvasSize.width;
-                            mapCanvas.height = projectData.canvasSize.height;
-                            redrawMap();
-                        };
-                        mapImage.src = projectData.mapImageData;
-                    }
-
-                    // タイルセット復元
-                    if (projectData.tilesetImageData) {
-                        tilesetImage = new Image();
-                        tilesetImage.onload = () => {
-                            tilesetCanvas.width = tilesetImage.width;
-                            tilesetCanvas.height = tilesetImage.height;
-                            tilesetCtx.drawImage(tilesetImage, 0, 0);
-                        };
-                        tilesetImage.src = projectData.tilesetImageData;
-                    }
-
-                    // オブジェクト復元
-                    document.querySelectorAll('.object-wrapper').forEach(w => w.remove());
-                    placedObjects = projectData.objects || [];
-
-                    // objectIdCounterを復元（保存されていない古いプロジェクトの場合は計算）
-                    if (projectData.objectIdCounter) {
-                        objectIdCounter = projectData.objectIdCounter;
-                    } else if (placedObjects.length > 0) {
-                        const maxId = Math.max(...placedObjects.map(obj => obj.id));
-                        objectIdCounter = maxId + 1;
-                    } else {
-                        objectIdCounter = 1;
-                    }
-
-                    placedObjects.forEach(obj => createObjectElement(obj));
-                    updateObjectList();
-
-                    // 履歴をリセット
-                    history = [];
-                    historyIndex = -1;
-                    saveHistory();
-                };
-                reader.readAsText(file);
-            }
-        });
-
-        // PNG出力
-        document.getElementById('exportPngBtn').addEventListener('click', () => {
-            // 一時キャンバス作成
-            const exportCanvas = document.createElement('canvas');
-            exportCanvas.width = mapCanvas.width;
-            exportCanvas.height = mapCanvas.height;
-            const exportCtx = exportCanvas.getContext('2d');
-
-            // マップ描画
-            if (mapImage) {
-                exportCtx.drawImage(mapImage, 0, 0);
-            } else {
-                exportCtx.fillStyle = 'white';
-                exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-            }
-
-            // オブジェクト描画（順番に待つ必要あり）
-            let loadCount = 0;
-
-            if (placedObjects.length === 0) {
-                downloadCanvas(exportCanvas);
-                return;
-            }
-
-            placedObjects.forEach(obj => {
-                const img = new Image();
-                img.onload = () => {
-                    exportCtx.drawImage(img, obj.x, obj.y, obj.width, obj.height);
-                    loadCount++;
-                    if (loadCount === placedObjects.length) {
-                        downloadCanvas(exportCanvas);
-                    }
-                };
-                img.src = obj.imageData;
-            });
-        });
-
-        function downloadCanvas(canvas) {
-            const link = document.createElement('a');
-            link.download = 'map_export.png';
-            link.href = canvas.toDataURL();
-            link.click();
-        }
-
-        // 全クリア
-        document.getElementById('clearAllBtn').addEventListener('click', () => {
-            if (confirm('すべてのオブジェクトをクリアしますか？')) {
-                saveHistory();
-                placedObjects = [];
-                objectIdCounter = 1;  // IDカウンターもリセット
-                document.querySelectorAll('.object-wrapper').forEach(w => w.remove());
-                redrawMap();
-                updateObjectList();
-            }
-        });
-
-        // 初期設定
-        mapCanvas.width = 800;
-        mapCanvas.height = 600;
-        mapCtx.fillStyle = 'white';
-        mapCtx.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
-
-        // 初期履歴を保存
-        saveHistory();
-    </script>
+            </a>
+        </section>
+
+        <div class="foot">ローカルでもそのまま動作します。ブックマークにも便利です。</div>
+    </main>
 </body>
 </html>
